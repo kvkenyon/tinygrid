@@ -117,6 +117,16 @@ class Report:
         data: ReportData | Unset
         if isinstance(_data, Unset):
             data = UNSET
+        elif isinstance(_data, list):
+            # Handle case where data is a list (empty or with items)
+            # When data is a list, it contains the actual record data
+            if len(_data) == 0:
+                data = UNSET
+            else:
+                # Store the list data in ReportData's additional_properties
+                # This preserves all the data records returned by the API
+                data = ReportData()
+                data.additional_properties = {"records": _data}
         else:
             data = ReportData.from_dict(_data)
 

@@ -34,8 +34,16 @@ class QueryMetadataParameters:
         query_metadata_parameters = cls()
 
         additional_properties = {}
-        for prop_name, prop_dict in d.items():
-            additional_property = QueryMetadataParametersAdditionalProperty.from_dict(prop_dict)
+        for prop_name, prop_value in d.items():
+            # Handle both dict values and simple values (strings, numbers, etc.)
+            if isinstance(prop_value, Mapping):
+                additional_property = QueryMetadataParametersAdditionalProperty.from_dict(prop_value)
+            else:
+                # For simple values (strings, numbers, etc.), create an empty object
+                # and store the value directly - the parameters are just key-value pairs
+                additional_property = QueryMetadataParametersAdditionalProperty()
+                # Store the simple value as a special property
+                additional_property.additional_properties = {"value": prop_value}
 
             additional_properties[prop_name] = additional_property
 
