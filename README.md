@@ -1,408 +1,128 @@
 # Tiny Grid
 
-> A unified Python SDK for accessing grid data from all major US Independent System Operators (ISOs)
+A Python SDK for accessing electricity grid data from US Independent System Operators (ISOs).
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+## Supported ISOs
 
-**Tiny Grid** provides a clean, consistent interface for accessing real-time and historical grid data from major US electricity market operators. No more wrestling with different API formats, authentication methods, or data structures—just one simple SDK for all your grid data needs.
+- **ERCOT** - Electric Reliability Council of Texas (100+ endpoints)
 
-## 🎯 Vision
+More ISOs (CAISO, PJM, NYISO, ISO-NE, MISO, SPP) planned.
 
-The US electricity grid is managed by multiple Independent System Operators (ISOs), each with their own APIs, data formats, and authentication mechanisms. **Tiny Grid** abstracts away these differences, providing a unified interface that makes it easy to:
-
-- **Query grid data** across multiple ISOs with consistent methods
-- **Build applications** that work seamlessly across different markets
-- **Focus on your logic** instead of API integration details
-- **Scale easily** as new ISOs are added to the SDK
-
-## 🚀 Current Status
-
-### ✅ Supported ISOs
-
-- **ERCOT** (Electric Reliability Council of Texas) - Full API coverage with 100+ endpoints
-
-### 🔜 Coming Soon
-
-- **CAISO** (California Independent System Operator)
-- **PJM** (Pennsylvania-New Jersey-Maryland Interconnection)
-- **NYISO** (New York Independent System Operator)
-- **ISO-NE** (ISO New England)
-- **MISO** (Midcontinent Independent System Operator)
-- **SPP** (Southwest Power Pool)
-
-## 📦 Installation
+## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/tiny-grid.git
+git clone https://github.com/kvkenyon/tiny-grid.git
 cd tiny-grid
-
-# Install ERCOT client (currently available)
-cd pyercot
-uv pip install -e .
+uv sync --dev --all-extras
 ```
 
-> **Note**: The unified `tinygrid` package is coming soon. Currently, ERCOT support is available via the `pyercot` package.
-
-## 🎨 The Tiny Grid Difference
-
-**Tiny Grid** abstracts away all the complexity of ISO APIs. You don't need to know about endpoint paths, API categories, or raw HTTP clients—just use simple, intuitive methods.
-
-### 🚧 Current State: Raw API Client
-
-Right now, you can access ERCOT data through the generated API client, but it requires knowledge of the underlying API structure:
+## Quick Start
 
 ```python
-# ❌ Current: Raw API client (what we have now)
-from pyercot import Client
-from pyercot.api.np3_565_cd import lf_by_model_weather_zone
+from tinygrid import ERCOT, ERCOTAuth, ERCOTAuthConfig
 
-# You need to know the API structure (np3_565_cd)
-# You need to manage the client lifecycle
-# You need to pass the client to every call
-client = Client(base_url="https://api.ercot.com")
+# Set up authentication
+auth = ERCOTAuth(ERCOTAuthConfig(
+    username="your-email@example.com",
+    password="your-password",
+    subscription_key="your-subscription-key",
+))
 
-with client:
-    response = lf_by_model_weather_zone.sync(
-        client=client,
-        delivery_date_from="2024-01-01",
-        delivery_date_to="2024-01-07",
-        model="WEATHERZONE"
-    )
-```
+# Create client and fetch data
+ercot = ERCOT(auth=auth)
 
-### ✨ Future State: Clean SDK Interface
-
-**Coming soon**: A clean, intuitive SDK that hides all the complexity:
-
-```python
-# ✅ Future: Clean SDK (what we're building)
-from tinygrid import ERCOT
-
-# Simple initialization - no URLs, no client management
-ercot = ERCOT()
-
-# Intuitive method names - no need to know API structure
-forecast = ercot.get_load_forecast(
-    start_date="2024-01-01",
-    end_date="2024-01-07",
-    model="WEATHERZONE"
+# Get actual system load by weather zone
+load_data = ercot.get_actual_system_load_by_weather_zone(
+    operating_day_from="2024-12-20",
+    operating_day_to="2024-12-20",
+    size=24,
 )
 
-# Clean data access - no nested response objects
-for record in forecast:
-    print(f"Zone: {record.zone}, Load: {record.load}")
+# Get 7-day load forecast
+forecast = ercot.get_load_forecast_by_weather_zone(
+    start_date="2024-12-20",
+    end_date="2024-12-27",
+    size=100,
+)
 
-# Multiple ISOs with the same interface
-from tinygrid import CAISO, PJM
-
-caiso = CAISO()
-pjm = PJM()
-
-# Same methods work across all ISOs!
-caiso_forecast = caiso.get_load_forecast(...)
-pjm_forecast = pjm.get_load_forecast(...)
+# Get day-ahead market prices
+prices = ercot.get_dam_hourly_lmp(
+    start_date="2024-12-20",
+    end_date="2024-12-20",
+    size=50,
+)
 ```
 
-## 🏃 Quick Start
+See [`examples/ercot_example.py`](examples/ercot_example.py) for a complete working example.
 
-### Using the Raw API Client (Current)
+## ERCOT API Credentials
 
-If you need to use the current raw API client while we build the SDK:
+1. Register at [ERCOT API Explorer](https://apiexplorer.ercot.com/)
+2. Subscribe to the API products you need
+3. Use your email, password, and subscription key
 
-```python
-from pyercot import Client
-from pyercot.api.np3_565_cd import lf_by_model_weather_zone
+## Available ERCOT Endpoints
 
-client = Client(base_url="https://api.ercot.com")
+The SDK wraps 100+ ERCOT endpoints:
 
-with client:
-    response = lf_by_model_weather_zone.sync(
-        client=client,
-        delivery_date_from="2024-01-01",
-        delivery_date_to="2024-01-07",
-        model="WEATHERZONE"
-    )
-    
-    if response:
-        print(f"Found {len(response.report_data)} records")
-```
+| Category | Methods |
+|----------|---------|
+| Load Data | `get_actual_system_load_by_weather_zone`, `get_load_forecast_by_weather_zone`, `get_load_forecast_by_study_area` |
+| Pricing | `get_dam_hourly_lmp`, `get_dam_settlement_point_prices`, `get_lmp_electrical_bus`, `get_spp_node_zone_hub` |
+| Renewables | `get_wpp_hourly_average_actual_forecast`, `get_spp_hourly_average_actual_forecast` |
+| Ancillary Services | `get_dam_as_plan`, `get_total_as_service_offers`, `get_aggregated_as_offers_*` |
+| SCED | `get_sced_system_lambda`, `get_sced_gen_res_data`, `get_sced_dsr_load_data` |
 
-> **Note**: The raw API client is available for advanced use cases, but the SDK abstraction layer is our primary focus. See [pyercot/README.md](pyercot/README.md) for detailed raw API documentation.
+All methods accept `**kwargs` for additional API parameters like `size`, `page`, `sort`, etc.
 
-## 📚 SDK Features (Coming Soon)
-
-### 🎨 Unified Interface Across All ISOs
-
-The SDK provides a consistent interface regardless of which ISO you're querying:
+## Error Handling
 
 ```python
-from tinygrid import ERCOT, CAISO, PJM
-
-# Same interface, different ISOs
-ercot = ERCOT()
-caiso = CAISO()
-pjm = PJM()
-
-# Same methods work everywhere
-ercot_forecast = ercot.get_load_forecast(...)
-caiso_forecast = caiso.get_load_forecast(...)
-pjm_forecast = pjm.get_load_forecast(...)
-```
-
-### 🔄 Sync and Async Support
-
-All SDK methods support both synchronous and asynchronous operations:
-
-```python
-from tinygrid import ERCOT
-
-ercot = ERCOT()
-
-# Synchronous
-forecast = ercot.get_load_forecast(start_date="2024-01-01")
-
-# Asynchronous
-forecast = await ercot.get_load_forecast_async(start_date="2024-01-01")
-```
-
-### 📊 Clean Data Models
-
-No more nested response objects—just clean, intuitive data structures:
-
-```python
-from tinygrid import ERCOT
-
-ercot = ERCOT()
-forecast = ercot.get_load_forecast(...)
-
-# Direct access to data - no .report_data, no .parsed
-for record in forecast:
-    print(record.date, record.load, record.zone)
-
-# Or as a pandas DataFrame
-df = forecast.to_dataframe()
-```
-
-### 🛡️ Simplified Error Handling
-
-Clean, consistent error handling across all ISOs:
-
-```python
-from tinygrid import ERCOT, GridError
-
-ercot = ERCOT()
+from tinygrid import ERCOT, GridAPIError, GridTimeoutError, GridAuthenticationError
 
 try:
-    forecast = ercot.get_load_forecast(...)
-except GridError as e:
-    print(f"Grid API error: {e}")
+    data = ercot.get_actual_system_load_by_weather_zone(...)
+except GridAuthenticationError as e:
+    print(f"Auth failed: {e.message}")
+except GridAPIError as e:
+    print(f"API error {e.status_code}: {e.message}")
+except GridTimeoutError as e:
+    print(f"Timed out after {e.timeout}s")
 ```
 
-### 🎯 What Gets Abstracted Away
-
-The SDK handles all the complexity you don't need to worry about:
-
-- ❌ **No more** endpoint paths (`/np3-565-cd/lf_by_model_weather_zone`)
-- ❌ **No more** API category modules (`np3_565_cd`, `np6_345_cd`)
-- ❌ **No more** client lifecycle management (`with client:`)
-- ❌ **No more** passing clients to every call
-- ❌ **No more** nested response objects (`response.report_data`)
-- ❌ **No more** ISO-specific URL management
-
-Just clean, intuitive methods that work the same way across all ISOs.
-
-## 🏗️ Architecture
-
-### SDK Layer Architecture
-
-Tiny Grid uses a layered architecture that abstracts away API complexity:
-
-```
-┌─────────────────────────────────────────┐
-│         SDK Interface Layer             │  ← What users interact with
-│  (ERCOT, CAISO, PJM, etc.)             │     Clean, intuitive methods
-└─────────────────┬───────────────────────┘
-                   │
-┌──────────────────▼───────────────────────┐
-│      Abstraction & Transformation        │  ← Business logic layer
-│  (Data normalization, caching, etc.)     │     Handles ISO differences
-└──────────────────┬───────────────────────┘
-                   │
-┌──────────────────▼───────────────────────┐
-│      Generated API Clients               │  ← Raw API clients
-│  (pyercot, pycaiso, etc.)                │     Auto-generated from OpenAPI
-└──────────────────┬───────────────────────┘
-                   │
-┌──────────────────▼───────────────────────┐
-│         ISO APIs                          │  ← External APIs
-│  (ERCOT, CAISO, PJM, etc.)               │     What we're abstracting
-└───────────────────────────────────────────┘
-```
-
-### Project Structure
+## Project Structure
 
 ```
 tiny-grid/
-├── configs/              # ISO-specific API configurations
-│   └── ercot/
-│       ├── config.yaml   # Generation config
-│       └── ercot-api.json # OpenAPI specification
-├── pyercot/              # ERCOT raw API client (generated)
-│   └── pyercot/
-│       ├── api/          # API endpoint modules (raw)
-│       ├── models/       # Data models
-│       ├── client.py     # HTTP client
-│       └── errors.py    # Error types
-├── tinygrid/             # SDK abstraction layer (coming soon)
-│   ├── ercot.py          # ERCOT SDK interface
-│   ├── caiso.py          # CAISO SDK interface
-│   ├── base.py           # Base ISO client
-│   └── models/           # Unified data models
-└── README.md
+├── tinygrid/           # SDK layer
+│   ├── ercot.py        # ERCOT client with 100+ methods
+│   ├── auth/           # Authentication handling
+│   └── errors.py       # Error types
+├── pyercot/            # Auto-generated ERCOT API client
+├── examples/           # Usage examples
+└── tests/              # Test suite
 ```
 
-### How It Works
-
-1. **Raw API Clients** (`pyercot`, `pycaiso`, etc.) - Auto-generated from OpenAPI specs
-   - Handles HTTP communication
-   - Provides type-safe models
-   - Exposes all endpoints
-
-2. **SDK Abstraction Layer** (`tinygrid`) - Built on top of raw clients
-   - Provides intuitive method names
-   - Normalizes data across ISOs
-   - Handles authentication, retries, caching
-   - Hides API implementation details
-
-3. **User Code** - Simple, clean, and ISO-agnostic
-   - No knowledge of endpoint paths needed
-   - Same interface across all ISOs
-   - Focus on your business logic
-
-## 🔍 Available Endpoints
-
-### ERCOT
-
-ERCOT support includes 100+ endpoints covering:
-
-- **Load Forecasting** - Seven-day forecasts by model, weather zone, and study area
-- **Real-Time Operations** - Actual system load, LMPs, SCED data
-- **Day-Ahead Market** - DAM prices, settlements, shadow prices
-- **Ancillary Services** - AS offers, awards, self-arranged services
-- **Outage Management** - Generation and transmission outages
-- **Price Corrections** - RTM and DAM price corrections
-
-See the [ERCOT API Documentation](pyercot/README.md) for a complete list.
-
-## 🛠️ Development
-
-### Prerequisites
-
-- Python 3.10+
-- [uv](https://github.com/astral-sh/uv)
-
-### Setup
+## Development
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/tiny-grid.git
-cd tiny-grid
-
-# Install dependencies
-uv sync
-```
-
-### Running Tests
-
-```bash
-# Run all tests
+# Run tests
 pytest
 
 # Run with coverage
-pytest --cov=pyercot --cov-report=html
-```
+pytest --cov=tinygrid
 
-### Code Quality
-
-```bash
-# Format code
-ruff format .
-
-# Lint code
+# Lint
 ruff check .
 
-# Type checking
-mypy pyercot
+# Format
+ruff format .
 ```
 
-## 🤝 Contributing
+## License
 
-We welcome contributions! Whether you're adding support for a new ISO, improving documentation, or fixing bugs, your help makes Tiny Grid better for everyone.
+MIT
 
-### Adding a New ISO
+## Author
 
-1. **Obtain the ISO's OpenAPI specification**
-2. **Create a configuration** in `configs/{iso_name}/`
-3. **Generate the client** using the code generation tools
-4. **Add integration tests** for key endpoints
-5. **Update documentation** with examples
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-## 📖 Documentation
-
-- [ERCOT Client Documentation](pyercot/README.md) - Detailed usage guide for ERCOT API
-- [API Reference](https://tiny-grid.readthedocs.io) (coming soon)
-- [Examples](examples/) (coming soon)
-
-For detailed ERCOT API documentation, see the [pyercot README](pyercot/README.md).
-
-## 🗺️ Roadmap
-
-### Phase 1: Foundation ✅
-- [x] ERCOT raw API client (100+ endpoints)
-- [x] Type-safe models and error handling
-
-### Phase 2: SDK Abstraction 🚧 (In Progress)
-- [ ] ERCOT SDK interface (`tinygrid.ERCOT`)
-- [ ] Unified data models across ISOs
-- [ ] Simplified method names and signatures
-- [ ] Automatic client lifecycle management
-
-### Phase 3: Multi-ISO Support
-- [ ] CAISO integration
-- [ ] PJM integration
-- [ ] NYISO integration
-- [ ] ISO-NE integration
-- [ ] MISO integration
-- [ ] SPP integration
-
-### Phase 4: Advanced Features
-- [ ] Data caching and rate limiting
-- [ ] WebSocket support for real-time data
-- [ ] Pandas DataFrame integration
-- [ ] Query builder for complex filters
-- [ ] Batch operations across ISOs
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with [httpx](https://www.python-httpx.org/) for robust HTTP client functionality
-- Uses [attrs](https://www.attrs.org/) for clean data classes
-- Inspired by the need for better grid data access tools
-
-## 📧 Contact
-
-- **Author**: Kevin Kenyon
-- **Email**: kevin@poweredbylight.com
-- **GitHub**: [@yourusername](https://github.com/kvkenyon)
-
----
-
-**Made with ⚡ for the grid data community**
-
+Kevin Kenyon - kevin@poweredbylight.com

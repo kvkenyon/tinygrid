@@ -1,96 +1,48 @@
-# Tiny Grid SDK
+# tinygrid
 
-The Tiny Grid SDK provides a clean, intuitive interface for accessing grid data from major US Independent System Operators (ISOs).
+The SDK layer that wraps auto-generated API clients with a clean interface.
 
-## Quick Start
-
-### ERCOT
+## Usage
 
 ```python
-from tinygrid import ERCOT
+from tinygrid import ERCOT, ERCOTAuth, ERCOTAuthConfig
 
-# Create an ERCOT client
-ercot = ERCOT()
+# With authentication
+auth = ERCOTAuth(ERCOTAuthConfig(
+    username="you@example.com",
+    password="your-password",
+    subscription_key="your-key",
+))
+ercot = ERCOT(auth=auth)
 
-# Get load forecast by weather zone
-forecast = ercot.get_load_forecast_by_weather_zone(
-    start_date="2024-01-01",
-    end_date="2024-01-07",
-    model="WEATHERZONE"
+# Fetch data
+data = ercot.get_actual_system_load_by_weather_zone(
+    operating_day_from="2024-12-20",
+    operating_day_to="2024-12-20",
+    size=24,
 )
-
-# Access the forecast data
-print(forecast)
 ```
 
-### Using Context Managers
-
-For better resource management, use the client as a context manager:
+## Context Manager
 
 ```python
-from tinygrid import ERCOT
-
-with ERCOT() as ercot:
-    forecast = ercot.get_load_forecast_by_weather_zone(
-        start_date="2024-01-01",
-        end_date="2024-01-07"
+with ERCOT(auth=auth) as ercot:
+    data = ercot.get_load_forecast_by_weather_zone(
+        start_date="2024-12-20",
+        end_date="2024-12-27",
     )
 ```
 
-### Error Handling
+## Error Types
 
-The SDK provides clean error handling:
+- `GridError` - Base exception
+- `GridAPIError` - API returned an error
+- `GridAuthenticationError` - Auth failed
+- `GridTimeoutError` - Request timed out
+- `GridRateLimitError` - Rate limited
 
-```python
-from tinygrid import ERCOT, GridAPIError, GridTimeoutError
-
-ercot = ERCOT()
-
-try:
-    forecast = ercot.get_load_forecast_by_weather_zone(
-        start_date="2024-01-01",
-        end_date="2024-01-07"
-    )
-except GridAPIError as e:
-    print(f"API error: {e.message}")
-    print(f"Status code: {e.status_code}")
-except GridTimeoutError as e:
-    print(f"Request timed out after {e.timeout} seconds")
-```
-
-## Architecture
-
-The SDK is built on top of auto-generated API clients (`pyercot`, etc.) and provides:
-
-- **Clean method names** - No need to know endpoint paths or API categories
-- **Unified error handling** - Consistent error types across all ISOs
-- **Automatic client management** - No need to manage client lifecycle manually
-- **Type safety** - Full type hints for better IDE support
-
-## Development
-
-### Running Tests
+## Tests
 
 ```bash
-pytest
+pytest tests/
 ```
-
-### Running Tests with Coverage
-
-```bash
-pytest --cov=tinygrid --cov-report=html
-```
-
-### Code Quality
-
-```bash
-# Format code
-ruff format .
-
-# Lint code
-ruff check .
-
-# Type checking
-mypy tinygrid
-```
-

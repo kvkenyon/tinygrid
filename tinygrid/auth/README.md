@@ -1,43 +1,26 @@
 # ERCOT Authentication
 
-The Tiny Grid SDK provides built-in authentication support for the ERCOT API.
+ERCOT uses Azure B2C for authentication. You need:
 
-## Overview
-
-ERCOT API uses Azure B2C authentication and requires:
-1. **Subscription Key** - Obtained from [ERCOT API Explorer](https://apiexplorer.ercot.com/) after subscribing to API products
-2. **ID Token** - Generated using username/password via Azure B2C ROPC flow, valid for 1 hour
-
-The SDK handles token generation, caching, and automatic refresh using the Azure B2C endpoint.
+1. **Subscription Key** - from [ERCOT API Explorer](https://apiexplorer.ercot.com/)
+2. **Username/Password** - your ERCOT account credentials
 
 ## Usage
-
-### Basic Authentication
 
 ```python
 from tinygrid import ERCOT, ERCOTAuth, ERCOTAuthConfig
 
-# Create authentication configuration
-auth_config = ERCOTAuthConfig(
-    username="your-email@example.com",
+auth = ERCOTAuth(ERCOTAuthConfig(
+    username="you@example.com",
     password="your-password",
-    subscription_key="your-subscription-key",
-)
+    subscription_key="your-key",
+))
 
-# Create authentication handler
-auth = ERCOTAuth(auth_config)
-
-# Create ERCOT client with authentication
 ercot = ERCOT(auth=auth)
-
-# Use the client - authentication is handled automatically
-forecast = ercot.get_load_forecast_by_weather_zone(
-    start_date="2024-01-01",
-    end_date="2024-01-07",
-)
+data = ercot.get_actual_system_load_by_weather_zone(...)
 ```
 
-### Using Environment Variables
+## With Environment Variables
 
 ```python
 import os
@@ -46,22 +29,22 @@ from tinygrid import ERCOT, ERCOTAuth, ERCOTAuthConfig
 
 load_dotenv()
 
-auth_config = ERCOTAuthConfig(
+auth = ERCOTAuth(ERCOTAuthConfig(
     username=os.getenv("ERCOT_USERNAME"),
     password=os.getenv("ERCOT_PASSWORD"),
     subscription_key=os.getenv("ERCOT_SUBSCRIPTION_KEY"),
-)
+))
 
-ercot = ERCOT(auth=ERCOTAuth(auth_config))
+ercot = ERCOT(auth=auth)
 ```
 
-## Token Management
+## Token Handling
 
-- Tokens are automatically cached and reused
-- Tokens are refreshed automatically when expired (default: refresh at 55 minutes)
-- Token cache can be cleared with `auth.clear_token_cache()`
+- Tokens are cached automatically
+- Tokens refresh before expiry (at 55 min of 60 min lifetime)
+- Call `auth.clear_token_cache()` to force re-authentication
 
-## Error Handling
+## Errors
 
 ```python
 from tinygrid import GridAuthenticationError
@@ -70,23 +53,5 @@ try:
     ercot = ERCOT(auth=auth)
     data = ercot.get_load_forecast_by_weather_zone(...)
 except GridAuthenticationError as e:
-    print(f"Authentication failed: {e.message}")
-    print(f"Status code: {e.status_code}")
+    print(f"Auth failed: {e.message}")
 ```
-
-## Getting ERCOT API Credentials
-
-1. Register at [ERCOT API Explorer](https://apiexplorer.ercot.com/)
-2. Subscribe to the API products you need
-3. Copy your subscription key
-4. Use your email and password for authentication
-
-## Security Best Practices
-
-- ✅ Store credentials in `.env` file (never commit to git)
-- ✅ Use environment variables in production
-- ✅ Rotate credentials regularly
-- ✅ Enable MFA on your ERCOT account
-- ❌ Never hardcode credentials in source code
-- ❌ Never commit `.env` files to version control
-
