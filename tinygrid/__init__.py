@@ -2,7 +2,12 @@
 
 from .auth import ERCOTAuth, ERCOTAuthConfig
 from .ercot import ERCOT
-from .errors import GridAPIError, GridAuthenticationError, GridError, GridTimeoutError
+from .errors import (
+    GridAPIError,
+    GridAuthenticationError,
+    GridError,
+    GridTimeoutError,
+)
 
 __version__ = "0.1.0"
 
@@ -15,4 +20,3 @@ __all__ = (
     "GridAPIError",
     "GridAuthenticationError",
 )
-

@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-cd tiny-grid
+cd tinygrid
 uv sync --dev --all-extras
 ```
 
@@ -34,18 +34,5 @@ ERCOT_SUBSCRIPTION_KEY=your-key
 
 ```bash
 # Python script
-python examples/ercot_example.py
-
-# Jupyter notebook
-jupyter notebook examples/ercot_example.ipynb
+python examples/ercot_demo.py
 ```
-
-## Auth Troubleshooting
-
-If authentication fails, run the debug script:
-
-```bash
-python examples/debug_auth.py
-```
-
-This tests the Azure B2C token endpoint directly.

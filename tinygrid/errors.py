@@ -21,7 +21,11 @@ class GridError(Exception):
 class GridTimeoutError(GridError):
     """Raised when a request to the grid API times out"""
 
-    def __init__(self, message: str = "Request to grid API timed out", timeout: float | None = None):
+    def __init__(
+        self,
+        message: str = "Request to grid API timed out",
+        timeout: float | None = None,
+    ):
         """Initialize a GridTimeoutError.
 
         Args:
@@ -55,7 +59,11 @@ class GridAPIError(GridError):
         if status_code is not None:
             details["status_code"] = status_code
         if response_body is not None:
-            details["response_body"] = response_body.decode("utf-8") if isinstance(response_body, bytes) else response_body
+            details["response_body"] = (
+                response_body.decode("utf-8")
+                if isinstance(response_body, bytes)
+                else response_body
+            )
         if endpoint is not None:
             details["endpoint"] = endpoint
 
@@ -98,8 +106,43 @@ class GridRateLimitError(GridAPIError):
             endpoint: The endpoint that was called
             retry_after: Number of seconds to wait before retrying
         """
-        super().__init__(message, status_code=status_code, response_body=response_body, endpoint=endpoint)
+        super().__init__(
+            message,
+            status_code=status_code,
+            response_body=response_body,
+            endpoint=endpoint,
+        )
         self.retry_after = retry_after
         if retry_after is not None:
             self.details["retry_after"] = retry_after
 
+
+class GridRetryExhaustedError(GridAPIError):
+    """Raised when all retry attempts have been exhausted"""
+
+    def __init__(
+        self,
+        message: str = "All retry attempts exhausted",
+        status_code: int | None = None,
+        response_body: str | bytes | None = None,
+        endpoint: str | None = None,
+        attempts: int | None = None,
+    ):
+        """Initialize a GridRetryExhaustedError.
+
+        Args:
+            message: Human-readable error message
+            status_code: HTTP status code from the last API response
+            response_body: Response body from the last API response
+            endpoint: The endpoint that was called
+            attempts: Number of retry attempts made
+        """
+        super().__init__(
+            message,
+            status_code=status_code,
+            response_body=response_body,
+            endpoint=endpoint,
+        )
+        self.attempts = attempts
+        if attempts is not None:
+            self.details["attempts"] = attempts

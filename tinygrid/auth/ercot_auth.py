@@ -1,7 +1,6 @@
 """ERCOT API authentication handler"""
 
 import time
-from urllib.parse import quote_plus
 
 import httpx
 from attrs import define, field
@@ -62,7 +61,9 @@ class ERCOTAuth:
 
     config: ERCOTAuthConfig
     _cached_token: str | None = field(default=None, init=False, repr=False)
-    _token_expires_at: float | None = field(default=None, init=False, repr=False)
+    _token_expires_at: float | None = field(
+        default=None, init=False, repr=False
+    )
 
     def _is_token_valid(self) -> bool:
         """Check if the cached token is still valid.
@@ -174,18 +175,15 @@ class ERCOTAuth:
                 # URL-encode values to handle special characters
                 auth_url_with_params = (
                     f"{self.config.auth_url}"
-                    f"?username={quote_plus(self.config.username)}"
-                    f"&password={quote_plus(self.config.password)}"
+                    f"?username={self.config.username}"
+                    f"&password={self.config.password}"
                     f"&grant_type=password"
-                    f"&scope={quote_plus(scope)}"
+                    f"&scope={scope}"
                     f"&client_id={self.config.client_id}"
                     f"&response_type=id_token"
                 )
                 response = await client.post(
                     auth_url_with_params,
-                    headers={
-                        "Content-Type": "application/x-www-form-urlencoded",
-                    },
                 )
 
                 if response.status_code != 200:
@@ -293,4 +291,3 @@ class ERCOTAuth:
         """Clear the cached token, forcing a refresh on next request."""
         self._cached_token = None
         self._token_expires_at = None
-
