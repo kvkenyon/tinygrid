@@ -64,8 +64,14 @@ class TestBaseISOClient:
     def test_normalize_datetime(self):
         """Test datetime normalization."""
         client = ConcreteISOClient(base_url="https://api.test.com")
-        assert client._normalize_datetime("2024-01-01T00:00:00") == "2024-01-01T00:00:00"
-        assert client._normalize_datetime(" 2024-01-01T00:00:00 ") == "2024-01-01T00:00:00"
+        assert (
+            client._normalize_datetime("2024-01-01T00:00:00")
+            == "2024-01-01T00:00:00"
+        )
+        assert (
+            client._normalize_datetime(" 2024-01-01T00:00:00 ")
+            == "2024-01-01T00:00:00"
+        )
 
     def test_normalize_datetime_invalid_type(self):
         """Test datetime normalization with invalid type."""
@@ -75,7 +81,9 @@ class TestBaseISOClient:
 
     def test_handle_error_raises_when_enabled(self):
         """Test error handling raises when raise_on_error is True."""
-        client = ConcreteISOClient(base_url="https://api.test.com", raise_on_error=True)
+        client = ConcreteISOClient(
+            base_url="https://api.test.com", raise_on_error=True
+        )
         error = ValueError("Test error")
 
         with pytest.raises(GridError):
@@ -83,7 +91,9 @@ class TestBaseISOClient:
 
     def test_handle_error_silent_when_disabled(self):
         """Test error handling is silent when raise_on_error is False."""
-        client = ConcreteISOClient(base_url="https://api.test.com", raise_on_error=False)
+        client = ConcreteISOClient(
+            base_url="https://api.test.com", raise_on_error=False
+        )
         error = ValueError("Test error")
 
         # Should not raise
@@ -93,11 +103,12 @@ class TestBaseISOClient:
         """Test that GridErrors are preserved."""
         from tinygrid.errors import GridAPIError
 
-        client = ConcreteISOClient(base_url="https://api.test.com", raise_on_error=True)
+        client = ConcreteISOClient(
+            base_url="https://api.test.com", raise_on_error=True
+        )
         original_error = GridAPIError("Original error", status_code=500)
 
         with pytest.raises(GridAPIError) as exc_info:
             client._handle_error(original_error, endpoint="/test")
 
         assert exc_info.value.status_code == 500
-

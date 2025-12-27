@@ -1,6 +1,5 @@
 """Tests for error handling"""
 
-
 from tinygrid.errors import (
     GridAPIError,
     GridAuthenticationError,
@@ -126,4 +125,3 @@ class TestGridRateLimitError:
         error = GridRateLimitError("Custom rate limit error", retry_after=120)
         assert error.message == "Custom rate limit error"
         assert error.retry_after == 120
-

@@ -11,8 +11,8 @@ More ISOs (CAISO, PJM, NYISO, ISO-NE, MISO, SPP) planned.
 ## Installation
 
 ```bash
-git clone https://github.com/kvkenyon/tiny-grid.git
-cd tiny-grid
+git clone https://github.com/kvkenyon/tinygrid.git
+cd tinygrid
 uv sync --dev --all-extras
 ```
 

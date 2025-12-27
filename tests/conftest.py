@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock
 
+import pandas as pd
 import pytest
 from pyercot.models.report import Report
 from pyercot.models.report_data import ReportData
@@ -58,3 +59,79 @@ def sample_product():
     product.description = "Test Description"
     return product
 
+
+@pytest.fixture
+def sample_fields():
+    """Create sample field metadata for testing DataFrame conversion."""
+    return [
+        {"name": "SCEDTimestamp", "label": "SCED Time Stamp"},
+        {"name": "repeatHourFlag", "label": "Repeat Hour Flag"},
+        {"name": "electricalBus", "label": "Electrical Bus"},
+        {"name": "LMP", "label": "LMP"},
+    ]
+
+
+@pytest.fixture
+def sample_records():
+    """Create sample records for testing DataFrame conversion."""
+    return [
+        ["2024-01-01T08:00:00", False, "BUS001", 25.50],
+        ["2024-01-01T08:15:00", False, "BUS001", 26.75],
+        ["2024-01-01T08:30:00", False, "BUS001", 24.00],
+        ["2024-01-01T08:45:00", False, "BUS002", 27.25],
+        ["2024-01-01T09:00:00", True, "BUS002", 28.50],
+    ]
+
+
+@pytest.fixture
+def sample_paginated_response(sample_fields, sample_records):
+    """Create a sample paginated API response."""
+    return {
+        "_meta": {
+            "totalRecords": 50,
+            "pageSize": 10,
+            "totalPages": 5,
+            "currentPage": 1,
+        },
+        "fields": sample_fields,
+        "data": {"records": sample_records},
+    }
+
+
+@pytest.fixture
+def sample_single_page_response(sample_fields, sample_records):
+    """Create a sample single-page API response."""
+    return {
+        "_meta": {
+            "totalRecords": 5,
+            "pageSize": 10,
+            "totalPages": 1,
+            "currentPage": 1,
+        },
+        "fields": sample_fields,
+        "data": {"records": sample_records},
+    }
+
+
+@pytest.fixture
+def sample_empty_response(sample_fields):
+    """Create a sample empty API response."""
+    return {
+        "_meta": {
+            "totalRecords": 0,
+            "pageSize": 10,
+            "totalPages": 0,
+            "currentPage": 1,
+        },
+        "fields": sample_fields,
+        "data": {"records": []},
+    }
+
+
+@pytest.fixture
+def expected_dataframe(sample_records, sample_fields):
+    """Create expected DataFrame from sample data."""
+    df = pd.DataFrame(sample_records)
+    column_mapping = {i: f["label"] for i, f in enumerate(sample_fields)}
+    df.rename(columns=column_mapping, inplace=True)
+    return df

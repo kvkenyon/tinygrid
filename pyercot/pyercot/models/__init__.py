@@ -14,7 +14,9 @@ from .product_history_metadata import ProductHistoryMetadata
 from .product_protocol_rules import ProductProtocolRules
 from .query_metadata import QueryMetadata
 from .query_metadata_parameters import QueryMetadataParameters
-from .query_metadata_parameters_additional_property import QueryMetadataParametersAdditionalProperty
+from .query_metadata_parameters_additional_property import (
+    QueryMetadataParametersAdditionalProperty,
+)
 from .report import Report
 from .report_data import ReportData
 from .report_metadata import ReportMetadata

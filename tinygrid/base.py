@@ -55,7 +55,9 @@ class BaseISOClient(ABC):
             raise ValueError(f"Datetime must be a string, got {type(datetime)}")
         return datetime.strip()
 
-    def _handle_error(self, error: Exception, endpoint: str | None = None) -> None:
+    def _handle_error(
+        self, error: Exception, endpoint: str | None = None
+    ) -> None:
         """Handle errors according to the client's error handling policy.
 
         Args:
@@ -73,11 +75,12 @@ class BaseISOClient(ABC):
 
             # Convert common HTTP errors to GridError types
             if isinstance(error, TimeoutError):
-                raise GridTimeoutError(f"Request timed out: {error}", timeout=self.timeout) from error
+                raise GridTimeoutError(
+                    f"Request timed out: {error}", timeout=self.timeout
+                ) from error
 
             # For other errors, wrap in GridAPIError
             raise GridAPIError(
                 f"Unexpected error: {error}",
                 endpoint=endpoint,
             ) from error
-

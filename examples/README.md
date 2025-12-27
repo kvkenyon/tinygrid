@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-cd tiny-grid
+cd tinygrid
 uv sync --dev --all-extras
 ```
 
@@ -30,22 +30,52 @@ ERCOT_PASSWORD=your-password
 ERCOT_SUBSCRIPTION_KEY=your-key
 ```
 
-## Running Examples
+## Examples
+
+### Unified API Demo (Notebook)
+
+The `unified_api_demo.ipynb` notebook demonstrates the new unified API with:
+
+- **Type-safe enums** (`Market`, `LocationType`) for IDE autocomplete
+- **Date parsing** with "today", "yesterday", "latest" keywords
+- **Unified methods** like `get_spp()`, `get_lmp()`, `get_as_prices()`
+- **Location filtering** by Load Zone, Trading Hub, or Resource Node
 
 ```bash
-# Python script
-python examples/ercot_example.py
-
-# Jupyter notebook
-jupyter notebook examples/ercot_example.ipynb
+# Run with Jupyter
+uv run jupyter notebook examples/unified_api_demo.ipynb
 ```
 
-## Auth Troubleshooting
-
-If authentication fails, run the debug script:
+### Python Scripts
 
 ```bash
-python examples/debug_auth.py
+# Basic ERCOT demo
+uv run python examples/ercot_demo.py
+
+# Validate all endpoints
+uv run python examples/validate_all_endpoints.py
 ```
 
-This tests the Azure B2C token endpoint directly.
+## Quick Start
+
+```python
+from tinygrid import ERCOT, Market, LocationType
+
+ercot = ERCOT()
+
+# Get real-time SPP for load zones
+df = ercot.get_spp(
+    start="yesterday",
+    market=Market.REAL_TIME_15_MIN,
+    location_type=LocationType.LOAD_ZONE,
+)
+
+# Get day-ahead LMP
+df = ercot.get_lmp(
+    start="2024-01-15",
+    market=Market.DAY_AHEAD_HOURLY,
+)
+
+# Get ancillary service prices
+df = ercot.get_as_prices(start="yesterday")
+```

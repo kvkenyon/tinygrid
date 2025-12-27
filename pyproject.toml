@@ -10,6 +10,8 @@ readme = "README.md"
 dependencies = [
     "pyercot",
     "python-dotenv>=1.0.0",
+    "tenacity>=8.0.0",
+    "pandas>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +21,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
+    "pandas>=2.3.3",
 ]
 
 [tool.pytest.ini_options]
@@ -80,9 +83,9 @@ build-backend = "setuptools.build_meta"
 [dependency-groups]
 dev = [
     "ipykernel>=7.1.0",
+    "jupyterlab>=4.5.1",
     "kaleido>=1.2.0",
     "nbformat>=5.10.4",
-    "pandas>=2.3.3",
     "plotly>=6.5.0",
 ]
 
