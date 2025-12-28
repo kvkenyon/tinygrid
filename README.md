@@ -196,18 +196,36 @@ just test
 # Run tests with coverage
 just test-coverage
 
-# Lint
+# Lint and format
 just lint
-
-# Format
 just format
+just lint-fix  # Auto-fix lint issues
 
 # Type check
 just type-check
 
-# Run all checks
+# Run all checks (lint, format, type-check, test)
 just check
 ```
+
+### Pre-commit Hooks
+
+Pre-commit hooks automatically run linting and formatting before each commit to catch issues early.
+
+```bash
+# Install hooks (one-time setup after cloning)
+just hooks-install
+
+# Run hooks manually on all files
+just hooks-run
+```
+
+The hooks run:
+- **ruff** - Linting with auto-fix
+- **ruff-format** - Code formatting
+- **pyright** - Type checking
+
+If a hook fails, fix the issues and re-commit. Ruff auto-fixes will be staged automatically.
 
 ## License
 

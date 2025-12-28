@@ -1,0 +1,23 @@
+# Pre-commit hooks for tinygrid
+# Install: uv run pre-commit install
+# Run manually: uv run pre-commit run --all-files
+
+repos:
+  # Ruff linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        args: [--fix, --unsafe-fixes]
+      - id: ruff-format
+
+  # Type checking with pyright
+  - repo: https://github.com/RobertCraiworthy/pyright-python
+    rev: v1.1.391
+    hooks:
+      - id: pyright
+        additional_dependencies:
+          - pandas>=2.0.0
+          - tenacity>=8.0.0
+          - python-dotenv>=1.0.0
+          - pytz

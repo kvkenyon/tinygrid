@@ -44,6 +44,14 @@ type-check:
 pre-commit: lint-fix format type-check
     @echo "Pre-commit checks completed!"
 
+# Install pre-commit hooks (run once after cloning)
+hooks-install:
+    uv run pre-commit install
+
+# Run pre-commit hooks on all files
+hooks-run:
+    uv run pre-commit run --all-files
+
 # Run all checks: lint, format, type check, and tests
 check: lint format type-check test
     @echo "All checks passed!"
