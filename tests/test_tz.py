@@ -158,9 +158,9 @@ class TestDSTFlagToAmbiguous:
 
         result = dst_flag_to_ambiguous(dst_flag)
 
-        assert result[0]
-        assert not result[1]
-        assert result[2]
+        assert result[0]  # pyright: ignore[reportGeneralTypeIssues]
+        assert not result[1]  # pyright: ignore[reportGeneralTypeIssues]
+        assert result[2]  # pyright: ignore[reportGeneralTypeIssues]
 
     def test_dst_flag_with_nulls(self):
         """Test converting DST flags with null values (should default to True)."""
@@ -168,9 +168,9 @@ class TestDSTFlagToAmbiguous:
 
         result = dst_flag_to_ambiguous(dst_flag)
 
-        assert result[0]
-        assert result[1]  # Null should become True
-        assert not result[2]
+        assert result[0]  # pyright: ignore[reportGeneralTypeIssues]
+        assert result[1]  # pyright: ignore[reportGeneralTypeIssues] # Null should become True
+        assert not result[2]  # pyright: ignore[reportGeneralTypeIssues]
 
     def test_dst_flag_all_nulls(self):
         """Test converting all null DST flags."""
@@ -264,7 +264,9 @@ class TestGetUTCOffset:
         """Test that naive timestamp raises ValueError."""
         dt = pd.Timestamp("2023-06-15 12:00:00")
 
-        with pytest.raises(ValueError, match="Timestamp must be timezone-aware"):
+        with pytest.raises(
+            ValueError, match="Timestamp must be timezone-aware"
+        ):
             get_utc_offset(dt)
 
 
@@ -302,7 +304,9 @@ class TestEdgeCases:
         # During spring forward, 2:30 AM doesn't exist
         dt = pd.Timestamp("2023-03-12 02:30:00")
 
-        result = localize_with_dst(dt, tz=ERCOT_TIMEZONE, nonexistent="shift_forward")
+        result = localize_with_dst(
+            dt, tz=ERCOT_TIMEZONE, nonexistent="shift_forward"
+        )
 
         assert result.tz is not None
         # Should be shifted forward to next valid time
@@ -312,15 +316,19 @@ class TestEdgeCases:
         # During spring forward, 2:30 AM doesn't exist
         dt = pd.Timestamp("2023-03-12 02:30:00")
 
-        result = localize_with_dst(dt, tz=ERCOT_TIMEZONE, nonexistent="shift_backward")
+        result = localize_with_dst(
+            dt, tz=ERCOT_TIMEZONE, nonexistent="shift_backward"
+        )
 
         assert result.tz is not None
         # Should be shifted backward to previous valid time
-        assert result.hour in {1, 3}
+        assert result.hour == 1
 
 
 class TestAdditionalDSTPaths:
-    def test_resolve_ambiguous_dst_fallback(self, monkeypatch: pytest.MonkeyPatch):
+    def test_resolve_ambiguous_dst_fallback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         ts = pd.Series([pd.Timestamp("2021-11-07 01:30")])
 
         from pandas.core.indexes.accessors import DatetimeProperties
@@ -339,7 +347,7 @@ class TestAdditionalDSTPaths:
     def test_localize_with_dst_nonexistent_explicit_backward(self):
         ts = "2024-03-10 02:15"
         result = localize_with_dst(ts, nonexistent="shift_backward")
-        assert result.hour in {1, 3}
+        assert result.hour == 1
 
     def test_localize_with_dst_nonexistent_shift_forward_fallback(
         self, monkeypatch: pytest.MonkeyPatch
@@ -351,7 +359,9 @@ class TestAdditionalDSTPaths:
             calls["count"] += 1
             if calls["count"] == 1:
                 raise pytz.exceptions.NonExistentTimeError()
-            return orig(self, tz=tz, ambiguous=ambiguous, nonexistent=nonexistent)
+            return orig(
+                self, tz=tz, ambiguous=ambiguous, nonexistent=nonexistent
+            )
 
         monkeypatch.setattr(pd.Timestamp, "tz_localize", fake, raising=False)
 
@@ -369,7 +379,9 @@ class TestAdditionalDSTPaths:
             calls["count"] += 1
             if calls["count"] == 1:
                 raise pytz.exceptions.NonExistentTimeError()
-            return orig(self, tz=tz, ambiguous=ambiguous, nonexistent=nonexistent)
+            return orig(
+                self, tz=tz, ambiguous=ambiguous, nonexistent=nonexistent
+            )
 
         monkeypatch.setattr(pd.Timestamp, "tz_localize", fake, raising=False)
 
@@ -387,7 +399,9 @@ class TestAdditionalDSTPaths:
             calls["count"] += 1
             if calls["count"] == 1:
                 raise pytz.exceptions.AmbiguousTimeError()
-            return orig(self, tz=tz, ambiguous=ambiguous, nonexistent=nonexistent)
+            return orig(
+                self, tz=tz, ambiguous=ambiguous, nonexistent=nonexistent
+            )
 
         monkeypatch.setattr(pd.Timestamp, "tz_localize", fake, raising=False)
 
@@ -405,7 +419,9 @@ class TestAdditionalDSTPaths:
     ):
         ts = pd.Timestamp("2024-03-10 02:15")
 
-        def raise_nonexistent(self, tz=None, ambiguous=True, nonexistent="raise"):  # type: ignore[override]
+        def raise_nonexistent(
+            self, tz=None, ambiguous=True, nonexistent="raise"
+        ):  # type: ignore[override]
             raise pytz.exceptions.NonExistentTimeError()
 
         monkeypatch.setattr(
