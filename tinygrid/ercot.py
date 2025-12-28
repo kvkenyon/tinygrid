@@ -25,6 +25,16 @@ if TYPE_CHECKING:
     from .historical.ercot import ERCOTArchive
 
 # Import endpoint modules (they have .sync() methods)
+from tenacity import (
+    RetryError,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from pyercot import AuthenticatedClient
+from pyercot import Client as ERCOTClient
 from pyercot.api.emil_products import (
     get_list_for_products,
     get_product,
@@ -148,16 +158,6 @@ from pyercot.api.np6_905_cd import spp_node_zone_hub
 from pyercot.api.np6_970_cd import rtd_lmp_node_zone_hub
 from pyercot.api.versioning import get_version
 from pyercot.errors import UnexpectedStatus
-from tenacity import (
-    RetryError,
-    retry,
-    retry_if_exception,
-    stop_after_attempt,
-    wait_exponential,
-)
-
-from pyercot import AuthenticatedClient
-from pyercot import Client as ERCOTClient
 
 from .auth import ERCOTAuth
 from .base import BaseISOClient

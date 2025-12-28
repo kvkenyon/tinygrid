@@ -11,13 +11,12 @@ repos:
         args: [--fix, --unsafe-fixes]
       - id: ruff-format
 
-  # Type checking with pyright
-  - repo: https://github.com/RobertCraiworthy/pyright-python
-    rev: v1.1.391
+  # Type checking with pyright (local hook using uv)
+  - repo: local
     hooks:
       - id: pyright
-        additional_dependencies:
-          - pandas>=2.0.0
-          - tenacity>=8.0.0
-          - python-dotenv>=1.0.0
-          - pytz
+        name: pyright
+        entry: uv run pyright
+        language: system
+        types: [python]
+        pass_filenames: false
