@@ -1,9 +1,9 @@
 import io
 from zipfile import ZipFile
 
+import httpx
 import pandas as pd
 import pytest
-import httpx
 
 from tinygrid.errors import GridAPIError
 from tinygrid.historical.ercot import ArchiveLink, ERCOTArchive
@@ -72,8 +72,14 @@ def test_fetch_historical_parallel_handles_partial_failures() -> None:
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
             self.links = [
-                ArchiveLink(doc_id="ok", url="http://example.com/ok", post_datetime="2024-01-01"),
-                ArchiveLink(doc_id="fail", url="http://example.com/fail", post_datetime="2024-01-02"),
+                ArchiveLink(
+                    doc_id="ok", url="http://example.com/ok", post_datetime="2024-01-01"
+                ),
+                ArchiveLink(
+                    doc_id="fail",
+                    url="http://example.com/fail",
+                    post_datetime="2024-01-02",
+                ),
             ]
 
         def get_archive_links(self, emil_id, start, end):  # type: ignore[override]
@@ -116,7 +122,11 @@ def test_fetch_historical_handles_parse_failure() -> None:
     class BadDownloadArchive(ERCOTArchive):
         def get_archive_links(self, emil_id, start, end):  # type: ignore[override]
             return [
-                ArchiveLink(doc_id="bad", url="https://example.com/bad", post_datetime="2024-01-01"),
+                ArchiveLink(
+                    doc_id="bad",
+                    url="https://example.com/bad",
+                    post_datetime="2024-01-01",
+                ),
             ]
 
         def bulk_download(self, doc_ids, emil_id):  # type: ignore[override]
@@ -139,7 +149,11 @@ def test_fetch_historical_parallel_all_failures_returns_empty() -> None:
     class AllFailArchive(ERCOTArchive):
         def get_archive_links(self, emil_id, start, end):  # type: ignore[override]
             return [
-                ArchiveLink(doc_id="bad", url="http://example.com/bad", post_datetime="2024-01-01"),
+                ArchiveLink(
+                    doc_id="bad",
+                    url="http://example.com/bad",
+                    post_datetime="2024-01-01",
+                ),
             ]
 
         def _download_single(self, link: ArchiveLink) -> pd.DataFrame:  # type: ignore[override]
@@ -162,7 +176,9 @@ def test_download_single_reads_zip(monkeypatch: pytest.MonkeyPatch) -> None:
             return make_zip_bytes("col1\n1\n").getvalue()
 
     archive = DownloadArchive(client=DummyClient())
-    link = ArchiveLink(doc_id="1", url="http://example.com/1", post_datetime="2024-01-01")
+    link = ArchiveLink(
+        doc_id="1", url="http://example.com/1", post_datetime="2024-01-01"
+    )
 
     df = archive._download_single(link)
 

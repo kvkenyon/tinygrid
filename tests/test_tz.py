@@ -328,7 +328,9 @@ class TestAdditionalDSTPaths:
         def raise_ambiguous(self, tz=None, ambiguous=None):  # type: ignore[override]
             raise pytz.exceptions.AmbiguousTimeError()
 
-        monkeypatch.setattr(DatetimeProperties, "tz_localize", raise_ambiguous, raising=False)
+        monkeypatch.setattr(
+            DatetimeProperties, "tz_localize", raise_ambiguous, raising=False
+        )
 
         result = resolve_ambiguous_dst(ts)
 
@@ -339,7 +341,9 @@ class TestAdditionalDSTPaths:
         result = localize_with_dst(ts, nonexistent="shift_backward")
         assert result.hour in {1, 3}
 
-    def test_localize_with_dst_nonexistent_shift_forward_fallback(self, monkeypatch: pytest.MonkeyPatch):
+    def test_localize_with_dst_nonexistent_shift_forward_fallback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         orig = pd.Timestamp.tz_localize
         calls = {"count": 0}
 
@@ -355,7 +359,9 @@ class TestAdditionalDSTPaths:
         result = localize_with_dst(ts, nonexistent="shift_forward")
         assert result.tz is not None
 
-    def test_localize_with_dst_nonexistent_shift_backward_fallback(self, monkeypatch: pytest.MonkeyPatch):
+    def test_localize_with_dst_nonexistent_shift_backward_fallback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         orig = pd.Timestamp.tz_localize
         calls = {"count": 0}
 
@@ -371,7 +377,9 @@ class TestAdditionalDSTPaths:
         result = localize_with_dst(ts, nonexistent="shift_backward")
         assert result.tz is not None
 
-    def test_localize_with_dst_ambiguous_fallback(self, monkeypatch: pytest.MonkeyPatch):
+    def test_localize_with_dst_ambiguous_fallback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         orig = pd.Timestamp.tz_localize
         calls = {"count": 0}
 
@@ -392,13 +400,17 @@ class TestAdditionalDSTPaths:
         with pytest.raises(ValueError):
             localize_with_dst(ts, nonexistent="raise")
 
-    def test_localize_with_dst_nonexistent_raise_branch(self, monkeypatch: pytest.MonkeyPatch):
+    def test_localize_with_dst_nonexistent_raise_branch(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         ts = pd.Timestamp("2024-03-10 02:15")
 
         def raise_nonexistent(self, tz=None, ambiguous=True, nonexistent="raise"):  # type: ignore[override]
             raise pytz.exceptions.NonExistentTimeError()
 
-        monkeypatch.setattr(pd.Timestamp, "tz_localize", raise_nonexistent, raising=False)
+        monkeypatch.setattr(
+            pd.Timestamp, "tz_localize", raise_nonexistent, raising=False
+        )
 
         with pytest.raises(ValueError):
             localize_with_dst(ts, nonexistent="raise")

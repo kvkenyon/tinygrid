@@ -2,12 +2,11 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
-
 from pyercot.errors import UnexpectedStatus
 
-from tinygrid.constants.ercot import LOAD_ZONES, LocationType, Market, TRADING_HUBS
-from tinygrid.errors import GridAPIError, GridAuthenticationError, GridTimeoutError
+from tinygrid.constants.ercot import LOAD_ZONES, TRADING_HUBS, LocationType, Market
 from tinygrid.ercot import ERCOT
+from tinygrid.errors import GridAPIError, GridAuthenticationError, GridTimeoutError
 
 
 def make_ercot(**kwargs: object) -> ERCOT:
@@ -28,11 +27,15 @@ def test_get_client_wraps_unexpected_auth_error() -> None:
     auth.get_subscription_key.assert_not_called()
 
 
-def test_get_client_creates_authenticated_client(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_client_creates_authenticated_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     created: dict[str, object] = {}
 
     class DummyAuthenticatedClient:
-        def __init__(self, base_url, token, timeout, verify_ssl, raise_on_unexpected_status):  # type: ignore[no-untyped-def]
+        def __init__(
+            self, base_url, token, timeout, verify_ssl, raise_on_unexpected_status
+        ):  # type: ignore[no-untyped-def]
             created["token"] = token
             created["base_url"] = base_url
             created["headers"] = {}
@@ -61,11 +64,20 @@ def test_get_client_creates_authenticated_client(monkeypatch: pytest.MonkeyPatch
     assert created["headers"] == {"Ocp-Apim-Subscription-Key": "subkey"}
 
 
-def test_get_client_refreshes_token_and_closes_old(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_client_refreshes_token_and_closes_old(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     closed = {"value": False}
 
     class DummyAuthenticatedClient:
-        def __init__(self, base_url=None, token=None, timeout=None, verify_ssl=None, raise_on_unexpected_status=None):  # type: ignore[no-untyped-def]
+        def __init__(
+            self,
+            base_url=None,
+            token=None,
+            timeout=None,
+            verify_ssl=None,
+            raise_on_unexpected_status=None,
+        ):  # type: ignore[no-untyped-def]
             self.token = token
 
         def with_headers(self, headers):
@@ -89,6 +101,7 @@ def test_get_client_refreshes_token_and_closes_old(monkeypatch: pytest.MonkeyPat
     assert isinstance(result, DummyAuthenticatedClient)
     assert closed["value"] is True
     assert result.token == "new"
+
 
 def test_handle_api_error_wraps_exceptions() -> None:
     client = make_ercot()
@@ -139,7 +152,7 @@ def test_products_to_dataframe_handles_additional_properties() -> None:
     df = client._products_to_dataframe(response)
 
     assert not df.empty
-    assert list(df["emilId"])[0] == "np1"
+    assert next(iter(df["emilId"])) == "np1"
     assert df.filter(like="details.nested").iloc[0, 0] == 1
 
 
@@ -176,7 +189,9 @@ def test_filter_by_location_excludes_zones_for_resource_nodes() -> None:
     )
 
     assert set(filtered["Settlement Point"]) == {"CUSTOM1", "CUSTOM2"}
-    assert all(pt not in LOAD_ZONES + TRADING_HUBS for pt in filtered["Settlement Point"])
+    assert all(
+        pt not in LOAD_ZONES + TRADING_HUBS for pt in filtered["Settlement Point"]
+    )
 
 
 def test_filter_by_location_matches_allowed_types() -> None:
@@ -232,7 +247,9 @@ def test_add_time_columns_from_hour_ending_strings() -> None:
     assert result["End Time"].dt.hour.iloc[0] == 1
 
 
-def test_get_shadow_prices_routes_to_archive_for_day_ahead(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_shadow_prices_routes_to_archive_for_day_ahead(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class HistoricalERCOT(ERCOT):
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return True
@@ -247,7 +264,9 @@ def test_get_shadow_prices_routes_to_archive_for_day_ahead(monkeypatch: pytest.M
     calls: dict[str, object] = {}
 
     archive = MagicMock()
-    archive.fetch_historical.return_value = pd.DataFrame({"Delivery Date": ["2024-01-01"]})
+    archive.fetch_historical.return_value = pd.DataFrame(
+        {"Delivery Date": ["2024-01-01"]}
+    )
     monkeypatch.setattr(client, "_get_archive", lambda: archive)
     monkeypatch.setattr(
         client,
@@ -278,7 +297,9 @@ def test_get_load_uses_historical_weather_zone(monkeypatch: pytest.MonkeyPatch) 
     client = HistoricalERCOT()
 
     archive = MagicMock()
-    archive.fetch_historical.return_value = pd.DataFrame({"Oper Day": ["2024-01-01"], "value": [1]})
+    archive.fetch_historical.return_value = pd.DataFrame(
+        {"Oper Day": ["2024-01-01"], "value": [1]}
+    )
     monkeypatch.setattr(client, "_get_archive", lambda: archive)
     monkeypatch.setattr(
         client,
@@ -310,12 +331,16 @@ def test_get_shadow_prices_real_time_live_path(monkeypatch: pytest.MonkeyPatch) 
         lambda **kwargs: pd.DataFrame({"Delivery Date": ["2024-01-01"]}),
     )
 
-    df = client.get_shadow_prices(start="2024-01-01", end="2024-01-02", market=Market.REAL_TIME_SCED)
+    df = client.get_shadow_prices(
+        start="2024-01-01", end="2024-01-02", market=Market.REAL_TIME_SCED
+    )
 
     assert not df.empty
 
 
-def test_get_wind_forecast_mixes_historical_and_live(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_wind_forecast_mixes_historical_and_live(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class MixedERCOT(ERCOT):
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return market == "forecast"
@@ -329,7 +354,9 @@ def test_get_wind_forecast_mixes_historical_and_live(monkeypatch: pytest.MonkeyP
     client = MixedERCOT()
 
     archive = MagicMock()
-    archive.fetch_historical.return_value = pd.DataFrame({"Posted Datetime": ["2024-01-01"]})
+    archive.fetch_historical.return_value = pd.DataFrame(
+        {"Posted Datetime": ["2024-01-01"]}
+    )
     monkeypatch.setattr(client, "_get_archive", lambda: archive)
     monkeypatch.setattr(
         client,
@@ -337,8 +364,12 @@ def test_get_wind_forecast_mixes_historical_and_live(monkeypatch: pytest.MonkeyP
         lambda **kwargs: pd.DataFrame({"Posted Datetime": ["2024-01-02"]}),
     )
 
-    df_region = client.get_wind_forecast(start="2024-01-01", end="2024-01-02", by_region=True)
-    df_global = client.get_wind_forecast(start="2024-01-01", end="2024-01-02", by_region=False)
+    df_region = client.get_wind_forecast(
+        start="2024-01-01", end="2024-01-02", by_region=True
+    )
+    df_global = client.get_wind_forecast(
+        start="2024-01-01", end="2024-01-02", by_region=False
+    )
 
     assert not df_region.empty and not df_global.empty
     assert archive.fetch_historical.call_count == 2
@@ -380,16 +411,22 @@ def test_get_solar_forecast_historical(monkeypatch: pytest.MonkeyPatch) -> None:
 
     client = HistoricalERCOT()
     archive = MagicMock()
-    archive.fetch_historical.return_value = pd.DataFrame({"Posted Datetime": ["2024-01-01"]})
+    archive.fetch_historical.return_value = pd.DataFrame(
+        {"Posted Datetime": ["2024-01-01"]}
+    )
     monkeypatch.setattr(client, "_get_archive", lambda: archive)
 
-    df = client.get_solar_forecast(start="2024-01-01", end="2024-01-02", by_region=False)
+    df = client.get_solar_forecast(
+        start="2024-01-01", end="2024-01-02", by_region=False
+    )
 
     assert not df.empty
     archive.fetch_historical.assert_called_once()
 
 
-def test_get_60_day_dam_disclosure_uses_archive(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_60_day_dam_disclosure_uses_archive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class DisclosureERCOT(ERCOT):
         def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
             return df
@@ -397,7 +434,9 @@ def test_get_60_day_dam_disclosure_uses_archive(monkeypatch: pytest.MonkeyPatch)
     client = DisclosureERCOT()
 
     archive = MagicMock()
-    archive.fetch_historical.return_value = pd.DataFrame({"DeliveryDate": ["2024-01-01"]})
+    archive.fetch_historical.return_value = pd.DataFrame(
+        {"DeliveryDate": ["2024-01-01"]}
+    )
     monkeypatch.setattr(client, "_get_archive", lambda: archive)
 
     for method_name in [
@@ -413,7 +452,9 @@ def test_get_60_day_dam_disclosure_uses_archive(monkeypatch: pytest.MonkeyPatch)
         "get_dam_ptp_obl_opt",
         "get_dam_ptp_obl_opt_awards",
     ]:
-        monkeypatch.setattr(client, method_name, lambda **kwargs: pd.DataFrame({"dummy": [1]}))
+        monkeypatch.setattr(
+            client, method_name, lambda **kwargs: pd.DataFrame({"dummy": [1]})
+        )
 
     reports = client.get_60_day_dam_disclosure("today")
 
@@ -429,11 +470,17 @@ def test_get_60_day_sced_disclosure(monkeypatch: pytest.MonkeyPatch) -> None:
     client = DisclosureERCOT()
 
     archive = MagicMock()
-    archive.fetch_historical.return_value = pd.DataFrame({"DeliveryDate": ["2024-01-01"]})
+    archive.fetch_historical.return_value = pd.DataFrame(
+        {"DeliveryDate": ["2024-01-01"]}
+    )
     monkeypatch.setattr(client, "_get_archive", lambda: archive)
 
-    monkeypatch.setattr(client, "get_sced_gen_res_data", lambda **kwargs: pd.DataFrame({"a": [1]}))
-    monkeypatch.setattr(client, "get_load_res_data_in_sced", lambda **kwargs: pd.DataFrame({"b": [2]}))
+    monkeypatch.setattr(
+        client, "get_sced_gen_res_data", lambda **kwargs: pd.DataFrame({"a": [1]})
+    )
+    monkeypatch.setattr(
+        client, "get_load_res_data_in_sced", lambda **kwargs: pd.DataFrame({"b": [2]})
+    )
 
     reports = client.get_60_day_sced_disclosure("today")
 
