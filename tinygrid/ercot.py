@@ -3497,8 +3497,8 @@ class ERCOT(BaseISOClient):
                 )
             else:
                 df = self.get_actual_system_load_by_forecast_zone(
-                    oper_day_from=format_api_date(start_ts),
-                    oper_day_to=format_api_date(end_ts),
+                    operating_day_from=format_api_date(start_ts),
+                    operating_day_to=format_api_date(end_ts),
                 )
         else:
             if self._needs_historical(start_ts, "load"):
@@ -3509,8 +3509,8 @@ class ERCOT(BaseISOClient):
                 )
             else:
                 df = self.get_actual_system_load_by_weather_zone(
-                    oper_day_from=format_api_date(start_ts),
-                    oper_day_to=format_api_date(end_ts),
+                    operating_day_from=format_api_date(start_ts),
+                    operating_day_to=format_api_date(end_ts),
                 )
 
         df = self._filter_by_date(df, start_ts, end_ts, date_column="Oper Day")

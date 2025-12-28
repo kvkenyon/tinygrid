@@ -1,8 +1,36 @@
 """Tests for ERCOT client pagination logic"""
 
-from unittest.mock import MagicMock, patch
+import inspect
+from unittest.mock import MagicMock
 
 from tinygrid import ERCOT
+
+
+def create_paginated_mock():
+    """Create a mock endpoint that appears to support pagination.
+
+    The ERCOT client uses inspect.signature() to check if an endpoint
+    supports pagination by looking for 'page' and 'size' parameters.
+    We need to create a mock with a proper signature for this to work.
+    """
+
+    # Define a function with the signature we need
+    def sync_func(
+        client,
+        *,
+        page: int = 1,
+        size: int = 10000,
+        **kwargs,
+    ):
+        pass
+
+    # Create a mock that will have this signature
+    mock_endpoint = MagicMock()
+    mock_endpoint.sync = MagicMock()
+    # Set the spec to our function so inspect.signature works
+    mock_endpoint.sync.__signature__ = inspect.signature(sync_func)
+
+    return mock_endpoint
 
 
 class TestPaginationConfig:
@@ -27,11 +55,10 @@ class TestPaginationConfig:
 class TestFetchAllPages:
     """Test the _fetch_all_pages method."""
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_single_page_response(
-        self, mock_endpoint, sample_single_page_response
-    ):
+    def test_single_page_response(self, sample_single_page_response):
         """Test fetching data when there's only one page."""
+        mock_endpoint = create_paginated_mock()
+
         mock_response = MagicMock()
         mock_response.to_dict.return_value = sample_single_page_response
 
@@ -47,9 +74,10 @@ class TestFetchAllPages:
         assert len(records) == 5
         assert len(fields) == 4
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_multiple_pages_response(self, mock_endpoint, sample_fields):
+    def test_multiple_pages_response(self, sample_fields):
         """Test fetching data across multiple pages."""
+        mock_endpoint = create_paginated_mock()
+
         # Create responses for 3 pages
         page1_response = {
             "_meta": {
@@ -121,9 +149,10 @@ class TestFetchAllPages:
         assert len(records) == 15  # 5 records per page * 3 pages
         assert len(fields) == 4
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_empty_response(self, mock_endpoint, sample_empty_response):
+    def test_empty_response(self, sample_empty_response):
         """Test fetching data when response is empty."""
+        mock_endpoint = create_paginated_mock()
+
         mock_response = MagicMock()
         mock_response.to_dict.return_value = sample_empty_response
 
@@ -137,11 +166,10 @@ class TestFetchAllPages:
         assert len(records) == 0
         assert len(fields) == 4
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_page_size_parameter_passed(
-        self, mock_endpoint, sample_single_page_response
-    ):
+    def test_page_size_parameter_passed(self, sample_single_page_response):
         """Test that page_size is passed to the endpoint."""
+        mock_endpoint = create_paginated_mock()
+
         mock_response = MagicMock()
         mock_response.to_dict.return_value = sample_single_page_response
 
@@ -156,11 +184,10 @@ class TestFetchAllPages:
         call_kwargs = mock_endpoint.sync.call_args[1]
         assert call_kwargs["size"] == 1000
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_custom_size_overrides_default(
-        self, mock_endpoint, sample_single_page_response
-    ):
+    def test_custom_size_overrides_default(self, sample_single_page_response):
         """Test that custom size parameter overrides default page_size."""
+        mock_endpoint = create_paginated_mock()
+
         mock_response = MagicMock()
         mock_response.to_dict.return_value = sample_single_page_response
 
@@ -175,9 +202,10 @@ class TestFetchAllPages:
         call_kwargs = mock_endpoint.sync.call_args[1]
         assert call_kwargs["size"] == 500
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_fields_from_first_page_only(self, mock_endpoint, sample_fields):
+    def test_fields_from_first_page_only(self, sample_fields):
         """Test that fields are only taken from the first page."""
+        mock_endpoint = create_paginated_mock()
+
         page1_response = {
             "_meta": {
                 "totalRecords": 10,
@@ -235,12 +263,11 @@ class TestFetchAllPages:
 class TestCallEndpoint:
     """Test the _call_endpoint method."""
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_returns_dataframe(
-        self, mock_endpoint, sample_single_page_response
-    ):
+    def test_returns_dataframe(self, sample_single_page_response):
         """Test that _call_endpoint returns a DataFrame."""
         import pandas as pd
+
+        mock_endpoint = create_paginated_mock()
 
         mock_response = MagicMock()
         mock_response.to_dict.return_value = sample_single_page_response
@@ -257,10 +284,11 @@ class TestCallEndpoint:
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 5
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_fetch_all_false(self, mock_endpoint, sample_paginated_response):
+    def test_fetch_all_false(self, sample_paginated_response):
         """Test that fetch_all=False only fetches first page."""
         import pandas as pd
+
+        mock_endpoint = create_paginated_mock()
 
         mock_response = MagicMock()
         mock_response.to_dict.return_value = sample_paginated_response

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+import respx
 from pyercot.models.report import Report
 from pyercot.models.report_data import ReportData
 
@@ -135,3 +136,213 @@ def expected_dataframe(sample_records, sample_fields):
     column_mapping = {i: f["label"] for i, f in enumerate(sample_fields)}
     df.rename(columns=column_mapping, inplace=True)
     return df
+
+
+# ============================================================================
+# HTTP Request Interception Fixtures (respx)
+# ============================================================================
+
+ERCOT_API_BASE_URL = "https://api.ercot.com/api/public-reports"
+ERCOT_PUBLIC_API_BASE_URL = "https://api.ercot.com/api/public-reports"
+
+
+@pytest.fixture
+def mock_ercot_api():
+    """Create a respx mock for the ERCOT API.
+
+    Usage:
+        def test_something(mock_ercot_api, sample_api_response):
+            mock_ercot_api.get("/np6-905-cd/spp_node_zone_hub").mock(
+                return_value=httpx.Response(200, json=sample_api_response)
+            )
+            # ... test code
+    """
+    with respx.mock(base_url=ERCOT_API_BASE_URL) as respx_mock:
+        yield respx_mock
+
+
+@pytest.fixture
+def sample_api_response():
+    """Standard ERCOT paginated response structure for HTTP tests."""
+    return {
+        "_meta": {
+            "totalRecords": 1,
+            "pageSize": 10000,
+            "totalPages": 1,
+            "currentPage": 1,
+        },
+        "fields": [
+            {"name": "deliveryDate", "label": "Delivery Date"},
+            {"name": "settlementPoint", "label": "Settlement Point"},
+            {"name": "settlementPointPrice", "label": "Settlement Point Price"},
+        ],
+        "data": {
+            "records": [
+                ["2024-01-01", "LZ_HOUSTON", 45.50],
+            ]
+        },
+    }
+
+
+@pytest.fixture
+def sample_product_response():
+    """Sample product list response for EMIL products endpoint."""
+    return {
+        "products": [
+            {
+                "emilId": "np6-905-cd",
+                "name": "Settlement Point Prices at Resource Nodes, Hubs and Load Zones",
+                "description": "SPP data",
+            }
+        ],
+        "_meta": {"totalRecords": 1},
+    }
+
+
+@pytest.fixture
+def sample_version_response():
+    """Sample version response for versioning endpoint."""
+    return {
+        "version": "1.0.0",
+        "apiVersion": "v1",
+        "buildDate": "2024-01-01",
+    }
+
+
+@pytest.fixture
+def sample_archive_response():
+    """Sample archive listing response for historical API."""
+    return {
+        "_meta": {
+            "totalRecords": 2,
+            "totalPages": 1,
+            "currentPage": 1,
+        },
+        "archives": [
+            {
+                "postDatetime": "2024-01-01T00:00:00",
+                "_links": {
+                    "endpoint": {
+                        "href": "/archive/np6-905-cd/download?docId=12345"
+                    }
+                },
+            },
+            {
+                "postDatetime": "2024-01-02T00:00:00",
+                "_links": {
+                    "endpoint": {
+                        "href": "/archive/np6-905-cd/download?docId=12346"
+                    }
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def sample_archive_listing_response():
+    """Sample archive listing response."""
+    return {
+        "_meta": {
+            "totalRecords": 2,
+            "totalPages": 1,
+            "currentPage": 1,
+        },
+        "archives": [
+            {
+                "postDatetime": "2024-01-01T00:00:00",
+                "_links": {
+                    "endpoint": {
+                        "href": "/archive/np6-905-cd/download?docId=12345"
+                    }
+                },
+            },
+            {
+                "postDatetime": "2024-01-02T00:00:00",
+                "_links": {
+                    "endpoint": {
+                        "href": "/archive/np6-905-cd/download?docId=12346"
+                    }
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def sample_rtm_response():
+    """Standard RTM response structure."""
+    return {
+        "_meta": {
+            "totalRecords": 1,
+            "pageSize": 10000,
+            "totalPages": 1,
+            "currentPage": 1,
+        },
+        "fields": [
+            {"name": "SCEDTimestamp", "label": "SCED Time Stamp"},
+            {"name": "settlementPoint", "label": "Settlement Point"},
+            {"name": "LMP", "label": "LMP"},
+        ],
+        "data": {
+            "records": [
+                ["2024-01-01T08:00:00", "LZ_HOUSTON", 45.50],
+            ]
+        },
+    }
+
+
+@pytest.fixture
+def sample_dam_response():
+    """Standard DAM response structure."""
+    return {
+        "_meta": {
+            "totalRecords": 1,
+            "pageSize": 10000,
+            "totalPages": 1,
+            "currentPage": 1,
+        },
+        "fields": [
+            {"name": "deliveryDate", "label": "Delivery Date"},
+            {"name": "hourEnding", "label": "Hour Ending"},
+            {"name": "settlementPoint", "label": "Settlement Point"},
+            {"name": "settlementPointPrice", "label": "Settlement Point Price"},
+        ],
+        "data": {
+            "records": [
+                ["2024-01-01", "1", "LZ_HOUSTON", 45.50],
+            ]
+        },
+    }
+
+
+@pytest.fixture
+def create_mock_zip_response():
+    """Create a mock zip file response for bulk download."""
+    import io
+    from zipfile import ZipFile
+
+    def _create():
+        # Create an outer zip containing inner zips
+        outer_buffer = io.BytesIO()
+        with ZipFile(outer_buffer, "w") as outer_zip:
+            # Create inner zip for doc 12345
+            inner_buffer1 = io.BytesIO()
+            with ZipFile(inner_buffer1, "w") as inner_zip:
+                csv_data = "col1,col2\nvalue1,value2\n"
+                inner_zip.writestr("data.csv", csv_data)
+            inner_buffer1.seek(0)
+            outer_zip.writestr("12345.zip", inner_buffer1.getvalue())
+
+            # Create inner zip for doc 12346
+            inner_buffer2 = io.BytesIO()
+            with ZipFile(inner_buffer2, "w") as inner_zip:
+                csv_data = "col1,col2\nvalue3,value4\n"
+                inner_zip.writestr("data.csv", csv_data)
+            inner_buffer2.seek(0)
+            outer_zip.writestr("12346.zip", inner_buffer2.getvalue())
+
+        outer_buffer.seek(0)
+        return outer_buffer.getvalue()
+
+    return _create
