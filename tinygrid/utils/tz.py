@@ -35,7 +35,13 @@ def resolve_ambiguous_dst(
     dt_series = pd.to_datetime(timestamps)
 
     # Use DSTFlag to resolve ambiguous times (DST=True, Standard=False)
-    ambiguous = dst_flags.fillna(True).astype(bool) if dst_flags is not None else True
+    if dst_flags is None:
+        ambiguous = True
+    else:
+        # Normalize to pandas nullable boolean to avoid downcast warnings, then
+        # fill missing values as True (DST).
+        normalized_flags = dst_flags.astype("boolean").fillna(True)
+        ambiguous = normalized_flags.astype(bool)
 
     try:
         localized = dt_series.dt.tz_localize(tz, ambiguous=ambiguous)
@@ -133,7 +139,8 @@ def dst_flag_to_ambiguous(dst_flag: pd.Series) -> pd.Series:
     Returns:
         Boolean series for use with tz_localize(ambiguous=...)
     """
-    return dst_flag.fillna(True).astype(bool)
+    normalized_flags = dst_flag.astype("boolean").fillna(True)
+    return normalized_flags.astype(bool)
 
 
 def is_dst_transition_date(date: pd.Timestamp, tz: str = ERCOT_TIMEZONE) -> bool:

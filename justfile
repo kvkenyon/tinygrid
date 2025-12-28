@@ -18,7 +18,7 @@ test-func func:
 
 # Run tests with coverage report
 test-coverage:
-    uv run pytest --cov=tinygrid
+    uv run pytest --cov=tinygrid --cov-report=xml --cov-report=term-missing
 
 # Lint code
 lint:
@@ -43,6 +43,14 @@ type-check:
 # Pre-commit checks: lint fix, format, and type check
 pre-commit: lint-fix format type-check
     @echo "Pre-commit checks completed!"
+
+# Install pre-commit hooks (run once after cloning)
+hooks-install:
+    uv run pre-commit install
+
+# Run pre-commit hooks on all files
+hooks-run:
+    uv run pre-commit run --all-files
 
 # Run all checks: lint, format, type check, and tests
 check: lint format type-check test

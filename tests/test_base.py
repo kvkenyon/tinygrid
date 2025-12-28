@@ -106,3 +106,13 @@ class TestBaseISOClient:
             client._handle_error(original_error, endpoint="/test")
 
         assert exc_info.value.status_code == 500
+
+    def test_handle_error_timeout_error(self):
+        """Test that TimeoutError is converted to GridTimeoutError."""
+        from tinygrid.errors import GridTimeoutError
+
+        client = ConcreteISOClient(base_url="https://api.test.com", timeout=30.0)
+        timeout_error = TimeoutError("Connection timed out")
+
+        with pytest.raises(GridTimeoutError, match="Request timed out"):
+            client._handle_error(timeout_error, endpoint="/test-endpoint")
