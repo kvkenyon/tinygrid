@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -12,9 +12,6 @@ from .dates import date_chunks, parse_date_range
 
 if TYPE_CHECKING:
     pass
-
-P = ParamSpec("P")
-T = TypeVar("T")
 
 
 def support_date_range(freq: str | None = None):
@@ -36,7 +33,7 @@ def support_date_range(freq: str | None = None):
         ```
     """
 
-    def decorator(func: Callable[P, pd.DataFrame]) -> Callable[P, pd.DataFrame]:
+    def decorator(func: Callable[..., pd.DataFrame]) -> Callable[..., pd.DataFrame]:
         @wraps(func)
         def wrapper(
             self,

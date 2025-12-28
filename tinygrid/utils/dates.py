@@ -88,15 +88,22 @@ def parse_date_range(
         (Timestamp('2024-01-15...'), Timestamp('2024-01-20...'))
     """
     start_ts = parse_date(start, tz=tz, default="today")
-    end_ts = (
-        start_ts + pd.Timedelta(days=days_forward)
-        if end is None
-        else parse_date(end, tz=tz, default="today")
-    )
+    if end is None:
+        end_ts_temp = start_ts + pd.Timedelta(days=days_forward)
+    else:
+        end_ts_temp = parse_date(end, tz=tz, default="today")
+
+    # Type assert: pandas operations on valid timestamps don't produce NaT
+    assert isinstance(end_ts_temp, pd.Timestamp) and not pd.isna(end_ts_temp)
+    end_ts: pd.Timestamp = end_ts_temp
 
     # Ensure end is after start
     if end_ts <= start_ts:
-        end_ts = start_ts + pd.Timedelta(days=days_forward)
+        end_ts_adjusted = start_ts + pd.Timedelta(days=days_forward)
+        assert isinstance(end_ts_adjusted, pd.Timestamp) and not pd.isna(
+            end_ts_adjusted
+        )
+        end_ts = end_ts_adjusted
 
     return start_ts, end_ts
 
@@ -126,7 +133,9 @@ def date_chunks(
     current = start
 
     while current < end:
-        chunk_end = min(current + delta, end)
+        next_ts = current + delta
+        assert isinstance(next_ts, pd.Timestamp) and not pd.isna(next_ts)
+        chunk_end: pd.Timestamp = min(next_ts, end)  # type: ignore[assignment]
         yield current, chunk_end
         current = chunk_end
 

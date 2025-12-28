@@ -20,7 +20,8 @@
     "geoip_db/**",
     "minio-data/**",
     "public/**",
-    "static-files/**"
+    "static-files/**",
+    "pyercot/**"
   ],
   "pythonPlatform": "Linux",
   "pythonVersion": "3.13",

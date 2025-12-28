@@ -445,7 +445,7 @@ class ERCOT(BaseISOClient):
 
     def _call_with_retry(
         self,
-        func: Callable[..., Any],
+        func: Any,  # pyercot endpoint module
         endpoint_name: str,
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -817,9 +817,10 @@ class ERCOT(BaseISOClient):
         ]
         other_columns = [c for c in df.columns if c not in priority_columns]
         column_order = [c for c in priority_columns if c in df.columns] + other_columns
-        df = df[column_order]
-
-        return df
+        result = df[column_order]
+        # Ensure we return a DataFrame, not a Series
+        assert isinstance(result, pd.DataFrame)
+        return result
 
     def _model_to_dataframe(self, response: dict[str, Any]) -> pd.DataFrame:
         """Convert a single model object to a pandas DataFrame.
@@ -961,7 +962,7 @@ class ERCOT(BaseISOClient):
 
     def _call_endpoint_raw(
         self,
-        endpoint_func: Callable[..., Any],
+        endpoint_func: Any,  # pyercot endpoint module with .sync() method
         endpoint_name: str,
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -2878,7 +2879,9 @@ class ERCOT(BaseISOClient):
 
         # Filter by specific locations
         if locations:
-            df = df[df[loc_col].isin(locations)]
+            filtered = df[df[loc_col].isin(locations)]
+            assert isinstance(filtered, pd.DataFrame)
+            df = filtered
 
         # Filter by location type(s)
         if location_type:
@@ -2903,9 +2906,15 @@ class ERCOT(BaseISOClient):
 
             if exclude_mode and not allowed:
                 # Only RESOURCE_NODE requested - exclude zones and hubs
-                df = df[~df[loc_col].isin(LOAD_ZONES) & ~df[loc_col].isin(TRADING_HUBS)]
+                filtered = df[
+                    ~df[loc_col].isin(LOAD_ZONES) & ~df[loc_col].isin(TRADING_HUBS)
+                ]
+                assert isinstance(filtered, pd.DataFrame)
+                df = filtered
             elif allowed:
-                df = df[df[loc_col].isin(allowed)]
+                filtered = df[df[loc_col].isin(allowed)]
+                assert isinstance(filtered, pd.DataFrame)
+                df = filtered
 
         return df
 
@@ -2959,7 +2968,9 @@ class ERCOT(BaseISOClient):
 
         # Filter to [start, end) - include start date, exclude end date
         mask = (dates >= start_date) & (dates < end_date)
-        return df[mask]
+        result = df[mask]
+        assert isinstance(result, pd.DataFrame)
+        return result
 
     def _add_time_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add Time and End Time columns based on available time fields.
@@ -3068,15 +3079,21 @@ class ERCOT(BaseISOClient):
             "Posted Time",
             "Repeated Hour",
         ]
-        df = df.drop(columns=[c for c in raw_time_cols if c in df.columns])
+        dropped = df.drop(columns=[c for c in raw_time_cols if c in df.columns])
+        assert isinstance(dropped, pd.DataFrame)
+        df = dropped
 
         # Reorder columns for better UX: Time first, then key data, then metadata
         priority_cols = ["Time", "End Time", "Location", "Price", "Market"]
         existing_priority = [c for c in priority_cols if c in df.columns]
         other_cols = [c for c in df.columns if c not in priority_cols]
-        df = df[existing_priority + other_cols]
+        reordered = df[existing_priority + other_cols]
+        assert isinstance(reordered, pd.DataFrame)
+        df = reordered
 
-        return df.reset_index(drop=True)
+        result = df.reset_index(drop=True)
+        assert isinstance(result, pd.DataFrame)
+        return result
 
     def get_spp(
         self,

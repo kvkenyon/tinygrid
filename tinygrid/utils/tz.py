@@ -38,10 +38,14 @@ def resolve_ambiguous_dst(
     ambiguous = dst_flags.fillna(True).astype(bool) if dst_flags is not None else True
 
     try:
-        return dt_series.dt.tz_localize(tz, ambiguous=ambiguous)
+        localized = dt_series.dt.tz_localize(tz, ambiguous=ambiguous)
+        assert isinstance(localized, pd.Series)
+        return localized
     except pytz.exceptions.AmbiguousTimeError:
         # Fallback: handle row by row
-        return dt_series.apply(lambda x: _localize_single(x, tz, ambiguous=True))
+        result = dt_series.apply(lambda x: _localize_single(x, tz, ambiguous=True))
+        assert isinstance(result, pd.Series)
+        return result
 
 
 def localize_with_dst(
@@ -69,30 +73,45 @@ def localize_with_dst(
     ts = pd.Timestamp(dt)
 
     if ts.tz is not None:
-        return ts.tz_convert(tz)
+        result = ts.tz_convert(tz)
+        assert isinstance(result, pd.Timestamp) and not pd.isna(result)
+        return result
 
     try:
-        return ts.tz_localize(tz, ambiguous=ambiguous, nonexistent=nonexistent)
+        result = ts.tz_localize(tz, ambiguous=ambiguous, nonexistent=nonexistent)
+        assert isinstance(result, pd.Timestamp) and not pd.isna(result)
+        return result
     except pytz.exceptions.AmbiguousTimeError:
         # Force the ambiguous resolution
-        return ts.tz_localize(tz, ambiguous=ambiguous)
+        result = ts.tz_localize(tz, ambiguous=ambiguous)
+        assert isinstance(result, pd.Timestamp) and not pd.isna(result)
+        return result
     except pytz.exceptions.NonExistentTimeError:
         # Handle spring forward gap
         if nonexistent == "shift_forward":
-            return ts.tz_localize(tz, nonexistent="shift_forward")
+            result = ts.tz_localize(tz, nonexistent="shift_forward")
+            assert isinstance(result, pd.Timestamp) and not pd.isna(result)
+            return result
         elif nonexistent == "shift_backward":
-            return ts.tz_localize(tz, nonexistent="shift_backward")
-        return pd.NaT
+            result = ts.tz_localize(tz, nonexistent="shift_backward")
+            assert isinstance(result, pd.Timestamp) and not pd.isna(result)
+            return result
+        # This should never be reached in practice as nonexistent should be handled
+        raise ValueError(
+            f"Unable to localize timestamp {dt} with nonexistent={nonexistent}"
+        )
 
 
 def _localize_single(
     dt: pd.Timestamp,
     tz: str,
     ambiguous: bool = True,
-) -> pd.Timestamp:
+) -> pd.Timestamp | pd.NaTType:
     """Localize a single timestamp with fallback handling."""
     try:
-        return dt.tz_localize(tz, ambiguous=ambiguous)
+        result = dt.tz_localize(tz, ambiguous=ambiguous)
+        assert isinstance(result, pd.Timestamp) and not pd.isna(result)
+        return result
     except Exception:
         return pd.NaT
 
@@ -151,4 +170,7 @@ def get_utc_offset(dt: pd.Timestamp) -> int:
     """
     if dt.tz is None:
         raise ValueError("Timestamp must be timezone-aware")
-    return int(dt.utcoffset().total_seconds() / 3600)
+    offset = dt.utcoffset()
+    if offset is None:
+        raise ValueError("Unable to determine UTC offset for timestamp")
+    return int(offset.total_seconds() / 3600)
