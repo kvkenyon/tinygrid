@@ -5,10 +5,10 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 import respx
-
-from pyercot import Client as ERCOTClient
 from pyercot.models.report import Report
 from pyercot.models.report_data import ReportData
+
+from pyercot import Client as ERCOTClient
 
 
 @pytest.fixture

@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
-
 from pyercot.errors import UnexpectedStatus
+
 from tinygrid.constants.ercot import LOAD_ZONES, TRADING_HUBS, LocationType, Market
 from tinygrid.ercot import ERCOT
 from tinygrid.errors import GridAPIError, GridAuthenticationError, GridTimeoutError
