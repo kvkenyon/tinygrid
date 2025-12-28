@@ -1,5 +1,7 @@
 # Tiny Grid
 
+[![CI](https://github.com/kvkenyon/tinygrid/actions/workflows/ci.yml/badge.svg)](https://github.com/kvkenyon/tinygrid/actions)
+
 A Python SDK for accessing electricity grid data from US Independent System Operators (ISOs).
 
 ## Supported ISOs
