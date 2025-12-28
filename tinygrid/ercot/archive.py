@@ -18,7 +18,7 @@ from ..errors import GridAPIError, GridRetryExhaustedError
 from ..utils.dates import format_api_datetime
 
 if TYPE_CHECKING:
-    from ..ercot import ERCOT
+    from . import ERCOT
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class ERCOTArchive:
     Example:
         ```python
         from tinygrid import ERCOT
-        from tinygrid.historical import ERCOTArchive
+        from tinygrid.ercot import ERCOTArchive
 
         ercot = ERCOT(auth=auth)
         archive = ERCOTArchive(client=ercot)

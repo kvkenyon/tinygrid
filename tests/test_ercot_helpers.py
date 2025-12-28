@@ -55,7 +55,9 @@ def test_get_client_creates_authenticated_client(
     auth.get_token.return_value = "token123"
     auth.get_subscription_key.return_value = "subkey"
 
-    monkeypatch.setattr("tinygrid.ercot.AuthenticatedClient", DummyAuthenticatedClient)
+    monkeypatch.setattr(
+        "tinygrid.ercot.client.AuthenticatedClient", DummyAuthenticatedClient
+    )
 
     client = make_ercot(auth=auth)
     result = client._get_client()
@@ -91,7 +93,9 @@ def test_get_client_refreshes_token_and_closes_old(
     auth.get_token.return_value = "new"
     auth.get_subscription_key.return_value = "sub"
 
-    monkeypatch.setattr("tinygrid.ercot.AuthenticatedClient", DummyAuthenticatedClient)
+    monkeypatch.setattr(
+        "tinygrid.ercot.client.AuthenticatedClient", DummyAuthenticatedClient
+    )
 
     client = make_ercot(auth=auth)
     client._client = DummyAuthenticatedClient(token="old")
@@ -114,6 +118,7 @@ def test_handle_api_error_wraps_exceptions() -> None:
         client._handle_api_error(TimeoutError(), endpoint="/test")
 
 
+@pytest.mark.skip(reason="Method removed in refactor - not part of public API")
 def test_flatten_dict_handles_nested_lists_and_nulls() -> None:
     client = make_ercot()
     data = {
@@ -133,33 +138,28 @@ def test_flatten_dict_handles_nested_lists_and_nulls() -> None:
     assert "none_val" in flattened and flattened["none_val"] is None
 
 
-def test_products_to_dataframe_handles_additional_properties() -> None:
+def test_products_to_dataframe_handles_products_list() -> None:
+    """Test the simplified _products_to_dataframe method."""
     client = make_ercot()
     response = {
-        "additional_properties": {
-            "_embedded": {
-                "products": [
-                    {
-                        "emilId": "np1",
-                        "name": "test",
-                        "details": {"nested": 1},
-                    }
-                ]
+        "products": [
+            {
+                "emilId": "np1",
+                "name": "test",
             }
-        }
+        ]
     }
 
     df = client._products_to_dataframe(response)
 
     assert not df.empty
-    assert next(iter(df["emilId"])) == "np1"
-    assert df.filter(like="details.nested").iloc[0, 0] == 1
+    assert df.iloc[0]["emilId"] == "np1"
 
 
-def test_product_history_to_dataframe_expands_archives() -> None:
+def test_product_history_to_dataframe_returns_archives() -> None:
+    """Test the simplified _product_history_to_dataframe method."""
     client = make_ercot()
     response = {
-        "emilId": "np1",
         "archives": [
             {"version": 1, "size": 10},
             {"version": 2, "size": 20},
@@ -170,11 +170,11 @@ def test_product_history_to_dataframe_expands_archives() -> None:
 
     assert len(df) == 2
     assert set(df["version"].tolist()) == {1, 2}
-    assert df["emilId"].iloc[0] == "np1"
 
 
 def test_filter_by_location_excludes_zones_for_resource_nodes() -> None:
-    client = make_ercot()
+    from tinygrid.ercot.transforms import filter_by_location
+
     df = pd.DataFrame(
         {
             "Settlement Point": ["HB_HOUSTON", "CUSTOM1", "LZ_NORTH", "CUSTOM2"],
@@ -182,7 +182,7 @@ def test_filter_by_location_excludes_zones_for_resource_nodes() -> None:
         }
     )
 
-    filtered = client._filter_by_location(
+    filtered = filter_by_location(
         df,
         location_type=LocationType.RESOURCE_NODE,
         location_column="Settlement Point",
@@ -195,7 +195,8 @@ def test_filter_by_location_excludes_zones_for_resource_nodes() -> None:
 
 
 def test_filter_by_location_matches_allowed_types() -> None:
-    client = make_ercot()
+    from tinygrid.ercot.transforms import filter_by_location
+
     df = pd.DataFrame(
         {
             "Settlement Point": ["HB_HOUSTON", "LZ_SOUTH", "CUSTOM"],
@@ -203,7 +204,7 @@ def test_filter_by_location_matches_allowed_types() -> None:
         }
     )
 
-    filtered = client._filter_by_location(
+    filtered = filter_by_location(
         df,
         location_type=[LocationType.TRADING_HUB, LocationType.LOAD_ZONE],
         location_column="Settlement Point",
@@ -213,23 +214,25 @@ def test_filter_by_location_matches_allowed_types() -> None:
 
 
 def test_filter_by_date_handles_alternate_column_names() -> None:
-    client = make_ercot()
+    from tinygrid.ercot.transforms import filter_by_date
+
     df = pd.DataFrame({"DeliveryDate": ["2024-01-01", "2024-01-03"]})
 
-    start = pd.Timestamp("2024-01-01")
-    end = pd.Timestamp("2024-01-02")
+    start = pd.Timestamp("2024-01-01", tz="US/Central")
+    end = pd.Timestamp("2024-01-02", tz="US/Central")
 
-    filtered = client._filter_by_date(df, start, end, date_column="Delivery Date")
+    filtered = filter_by_date(df, start, end, date_column="Delivery Date")
 
     assert len(filtered) == 1
     assert filtered.iloc[0]["DeliveryDate"] == "2024-01-01"
 
 
 def test_add_time_columns_from_interval_fields() -> None:
-    client = make_ercot()
+    from tinygrid.ercot.transforms import add_time_columns
+
     df = pd.DataFrame({"Date": ["2024-01-01"], "Hour": [1], "Interval": [2]})
 
-    result = client._add_time_columns(df.copy())
+    result = add_time_columns(df.copy())
 
     assert "Time" in result and "End Time" in result
     assert result["Time"].dt.tz is not None
@@ -237,10 +240,11 @@ def test_add_time_columns_from_interval_fields() -> None:
 
 
 def test_add_time_columns_from_hour_ending_strings() -> None:
-    client = make_ercot()
+    from tinygrid.ercot.transforms import add_time_columns
+
     df = pd.DataFrame({"Date": ["2024-01-01"], "Hour Ending": ["01:00"]})
 
-    result = client._add_time_columns(df.copy())
+    result = add_time_columns(df.copy())
 
     assert "Time" in result and "End Time" in result
     assert result["Time"].dt.hour.iloc[0] == 0
@@ -253,12 +257,6 @@ def test_get_shadow_prices_routes_to_archive_for_day_ahead(
     class HistoricalERCOT(ERCOT):
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return True
-
-        def _filter_by_date(self, df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
 
     client = HistoricalERCOT()
     calls: dict[str, object] = {}
@@ -273,6 +271,11 @@ def test_get_shadow_prices_routes_to_archive_for_day_ahead(
         "get_dam_shadow_prices",
         lambda **kwargs: calls.setdefault("live", kwargs) or pd.DataFrame(),
     )
+    # Patch the standalone functions to pass through
+    monkeypatch.setattr(
+        "tinygrid.ercot.api.filter_by_date", lambda df, *args, **kwargs: df
+    )
+    monkeypatch.setattr("tinygrid.ercot.api.standardize_columns", lambda df: df)
 
     df = client.get_shadow_prices(
         start="2024-01-01", end="2024-01-02", market=Market.DAY_AHEAD_HOURLY
@@ -288,12 +291,6 @@ def test_get_load_uses_historical_weather_zone(monkeypatch: pytest.MonkeyPatch) 
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return True
 
-        def _filter_by_date(self, df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
     client = HistoricalERCOT()
 
     archive = MagicMock()
@@ -306,6 +303,11 @@ def test_get_load_uses_historical_weather_zone(monkeypatch: pytest.MonkeyPatch) 
         "get_actual_system_load_by_weather_zone",
         lambda **kwargs: pd.DataFrame(),
     )
+    # Patch the standalone functions to pass through
+    monkeypatch.setattr(
+        "tinygrid.ercot.api.filter_by_date", lambda df, *args, **kwargs: df
+    )
+    monkeypatch.setattr("tinygrid.ercot.api.standardize_columns", lambda df: df)
 
     df = client.get_load(start="2024-01-01", end="2024-01-02", by="weather_zone")
 
@@ -318,18 +320,17 @@ def test_get_shadow_prices_real_time_live_path(monkeypatch: pytest.MonkeyPatch) 
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return False
 
-        def _filter_by_date(self, df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
     client = LiveERCOT()
     monkeypatch.setattr(
         client,
         "get_shadow_prices_bound_transmission_constraint",
         lambda **kwargs: pd.DataFrame({"Delivery Date": ["2024-01-01"]}),
     )
+    # Patch the standalone functions to pass through
+    monkeypatch.setattr(
+        "tinygrid.ercot.api.filter_by_date", lambda df, *args, **kwargs: df
+    )
+    monkeypatch.setattr("tinygrid.ercot.api.standardize_columns", lambda df: df)
 
     df = client.get_shadow_prices(
         start="2024-01-01", end="2024-01-02", market=Market.REAL_TIME_SCED
@@ -345,12 +346,6 @@ def test_get_wind_forecast_mixes_historical_and_live(
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return market == "forecast"
 
-        def _filter_by_date(self, df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
     client = MixedERCOT()
 
     archive = MagicMock()
@@ -363,6 +358,11 @@ def test_get_wind_forecast_mixes_historical_and_live(
         "get_wpp_hourly_actual_forecast_geo",
         lambda **kwargs: pd.DataFrame({"Posted Datetime": ["2024-01-02"]}),
     )
+    # Patch the standalone functions to pass through
+    monkeypatch.setattr(
+        "tinygrid.ercot.api.filter_by_date", lambda df, *args, **kwargs: df
+    )
+    monkeypatch.setattr("tinygrid.ercot.api.standardize_columns", lambda df: df)
 
     df_region = client.get_wind_forecast(
         start="2024-01-01", end="2024-01-02", by_region=True
@@ -380,13 +380,12 @@ def test_get_solar_forecast_live_region(monkeypatch: pytest.MonkeyPatch) -> None
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return False
 
-        def _filter_by_date(self, df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
     client = LiveERCOT()
+    # Patch the standalone functions to pass through
+    monkeypatch.setattr(
+        "tinygrid.ercot.api.filter_by_date", lambda df, *args, **kwargs: df
+    )
+    monkeypatch.setattr("tinygrid.ercot.api.standardize_columns", lambda df: df)
     monkeypatch.setattr(
         client,
         "get_spp_hourly_actual_forecast_geo",
@@ -403,18 +402,17 @@ def test_get_solar_forecast_historical(monkeypatch: pytest.MonkeyPatch) -> None:
         def _needs_historical(self, start: pd.Timestamp, market: str) -> bool:  # type: ignore[override]
             return True
 
-        def _filter_by_date(self, df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
     client = HistoricalERCOT()
     archive = MagicMock()
     archive.fetch_historical.return_value = pd.DataFrame(
         {"Posted Datetime": ["2024-01-01"]}
     )
     monkeypatch.setattr(client, "_get_archive", lambda: archive)
+    # Patch the standalone functions to pass through
+    monkeypatch.setattr(
+        "tinygrid.ercot.api.filter_by_date", lambda df, *args, **kwargs: df
+    )
+    monkeypatch.setattr("tinygrid.ercot.api.standardize_columns", lambda df: df)
 
     df = client.get_solar_forecast(
         start="2024-01-01", end="2024-01-02", by_region=False
@@ -427,11 +425,7 @@ def test_get_solar_forecast_historical(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_60_day_dam_disclosure_uses_archive(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class DisclosureERCOT(ERCOT):
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-    client = DisclosureERCOT()
+    client = ERCOT()
 
     archive = MagicMock()
     archive.fetch_historical.return_value = pd.DataFrame(
@@ -463,11 +457,7 @@ def test_get_60_day_dam_disclosure_uses_archive(
 
 
 def test_get_60_day_sced_disclosure(monkeypatch: pytest.MonkeyPatch) -> None:
-    class DisclosureERCOT(ERCOT):
-        def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-            return df
-
-    client = DisclosureERCOT()
+    client = ERCOT()
 
     archive = MagicMock()
     archive.fetch_historical.return_value = pd.DataFrame(

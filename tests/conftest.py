@@ -86,7 +86,12 @@ def sample_records():
 
 @pytest.fixture
 def sample_paginated_response(sample_fields, sample_records):
-    """Create a sample paginated API response."""
+    """Create a sample paginated API response.
+
+    Note: This is for mock patching pyercot endpoints directly, which
+    returns data as pyercot transforms it. For respx HTTP mocking,
+    use the raw API format without the 'records' wrapper.
+    """
     return {
         "_meta": {
             "totalRecords": 50,
@@ -95,13 +100,16 @@ def sample_paginated_response(sample_fields, sample_records):
             "currentPage": 1,
         },
         "fields": sample_fields,
-        "data": {"records": sample_records},
+        "data": sample_records,
     }
 
 
 @pytest.fixture
 def sample_single_page_response(sample_fields, sample_records):
-    """Create a sample single-page API response."""
+    """Create a sample single-page API response.
+
+    Note: This is for mock patching pyercot endpoints directly.
+    """
     return {
         "_meta": {
             "totalRecords": 5,
@@ -110,7 +118,7 @@ def sample_single_page_response(sample_fields, sample_records):
             "currentPage": 1,
         },
         "fields": sample_fields,
-        "data": {"records": sample_records},
+        "data": sample_records,
     }
 
 
@@ -125,7 +133,7 @@ def sample_empty_response(sample_fields):
             "currentPage": 1,
         },
         "fields": sample_fields,
-        "data": {"records": []},
+        "data": [],
     }
 
 

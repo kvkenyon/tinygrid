@@ -32,7 +32,7 @@ class TestRetryLogic:
         assert ercot.retry_min_wait == 0.5
         assert ercot.retry_max_wait == 30.0
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_successful_request_no_retry(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -50,7 +50,7 @@ class TestRetryLogic:
         assert mock_endpoint.sync.call_count == 1
         assert "_meta" in result
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_retry_on_500_error(self, mock_endpoint, sample_single_page_response):
         """Test that 500 errors trigger retries."""
         # First call fails, second succeeds
@@ -70,7 +70,7 @@ class TestRetryLogic:
         assert mock_endpoint.sync.call_count == 2
         assert "_meta" in result
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_retry_on_429_rate_limit(self, mock_endpoint, sample_single_page_response):
         """Test that 429 rate limit errors trigger retries."""
         mock_response = MagicMock()
@@ -89,7 +89,7 @@ class TestRetryLogic:
         assert mock_endpoint.sync.call_count == 2
         assert "_meta" in result
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_retry_on_502_gateway_error(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -109,7 +109,7 @@ class TestRetryLogic:
 
         assert mock_endpoint.sync.call_count == 2
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_retry_on_503_service_unavailable(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -129,7 +129,7 @@ class TestRetryLogic:
 
         assert mock_endpoint.sync.call_count == 2
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_retry_on_504_gateway_timeout(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -149,7 +149,7 @@ class TestRetryLogic:
 
         assert mock_endpoint.sync.call_count == 2
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_no_retry_on_400_client_error(self, mock_endpoint):
         """Test that 400 client errors do not trigger retries."""
         mock_endpoint.sync.side_effect = GridAPIError("Bad request", status_code=400)
@@ -164,7 +164,7 @@ class TestRetryLogic:
         # Should only be called once (no retries for 400)
         assert mock_endpoint.sync.call_count == 1
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_no_retry_on_401_unauthorized(self, mock_endpoint):
         """Test that 401 unauthorized errors do not trigger retries."""
         mock_endpoint.sync.side_effect = GridAPIError("Unauthorized", status_code=401)
@@ -178,7 +178,7 @@ class TestRetryLogic:
         assert exc_info.value.status_code == 401
         assert mock_endpoint.sync.call_count == 1
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_no_retry_on_404_not_found(self, mock_endpoint):
         """Test that 404 not found errors do not trigger retries."""
         mock_endpoint.sync.side_effect = GridAPIError("Not found", status_code=404)
@@ -192,7 +192,7 @@ class TestRetryLogic:
         assert exc_info.value.status_code == 404
         assert mock_endpoint.sync.call_count == 1
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_retry_exhausted_raises_error(self, mock_endpoint):
         """Test that exhausting retries raises GridAPIError (the last error)."""
         mock_endpoint.sync.side_effect = GridAPIError("Server error", status_code=500)
@@ -208,7 +208,7 @@ class TestRetryLogic:
         # Should be called max_retries + 1 times
         assert mock_endpoint.sync.call_count == 3
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_retry_exhausted_includes_endpoint_name(self, mock_endpoint):
         """Test that retry exhausted error includes status code."""
         mock_endpoint.sync.side_effect = GridAPIError("Server error", status_code=500)
@@ -222,7 +222,7 @@ class TestRetryLogic:
 
         assert exc_info.value.status_code == 500
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_multiple_retries_before_success(
         self, mock_endpoint, sample_single_page_response
     ):

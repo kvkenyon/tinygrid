@@ -5,8 +5,8 @@ import httpx
 import pandas as pd
 import pytest
 
+from tinygrid.ercot.archive import ArchiveLink, ERCOTArchive
 from tinygrid.errors import GridAPIError
-from tinygrid.historical.ercot import ArchiveLink, ERCOTArchive
 
 
 class DummyClient:

@@ -8,12 +8,12 @@ from tinygrid import ERCOT
 
 
 class TestResponseToDataFrame:
-    """Test the _response_to_dataframe method."""
+    """Test the _to_dataframe method."""
 
     def test_empty_records_with_fields(self, sample_fields):
         """Test converting empty records with field metadata."""
         ercot = ERCOT()
-        df = ercot._response_to_dataframe([], sample_fields)
+        df = ercot._to_dataframe([], sample_fields)
 
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 0
@@ -27,7 +27,7 @@ class TestResponseToDataFrame:
     def test_empty_records_without_fields(self):
         """Test converting empty records without field metadata."""
         ercot = ERCOT()
-        df = ercot._response_to_dataframe([], [])
+        df = ercot._to_dataframe([], [])
 
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 0
@@ -36,7 +36,7 @@ class TestResponseToDataFrame:
     def test_records_with_fields(self, sample_records, sample_fields):
         """Test converting records with field metadata."""
         ercot = ERCOT()
-        df = ercot._response_to_dataframe(sample_records, sample_fields)
+        df = ercot._to_dataframe(sample_records, sample_fields)
 
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 5
@@ -52,7 +52,7 @@ class TestResponseToDataFrame:
     def test_records_without_fields(self, sample_records):
         """Test converting records without field metadata uses numeric columns."""
         ercot = ERCOT()
-        df = ercot._response_to_dataframe(sample_records, [])
+        df = ercot._to_dataframe(sample_records, [])
 
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 5
@@ -68,7 +68,7 @@ class TestResponseToDataFrame:
         ]
         records = [["value1", "value2"]]
 
-        df = ercot._response_to_dataframe(records, fields)
+        df = ercot._to_dataframe(records, fields)
 
         assert list(df.columns) == ["field1", "Field 2 Label"]
 
@@ -81,15 +81,15 @@ class TestResponseToDataFrame:
         ]
         records = [["value1", "value2"]]
 
-        df = ercot._response_to_dataframe(records, fields)
+        df = ercot._to_dataframe(records, fields)
 
-        assert list(df.columns) == ["0", "Has Label"]
+        assert list(df.columns) == ["col_0", "Has Label"]
 
 
 class TestEndpointReturnsDataFrame:
     """Test that endpoint methods return DataFrames."""
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_get_lmp_electrical_bus_returns_dataframe(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -108,7 +108,7 @@ class TestEndpointReturnsDataFrame:
         assert len(result) == 5
         assert "SCED Time Stamp" in result.columns
 
-    @patch("tinygrid.ercot.lf_by_model_weather_zone")
+    @patch("tinygrid.ercot.endpoints.lf_by_model_weather_zone")
     def test_get_load_forecast_returns_dataframe(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -128,7 +128,7 @@ class TestEndpointReturnsDataFrame:
 
         assert isinstance(result, pd.DataFrame)
 
-    @patch("tinygrid.ercot.dam_hourly_lmp")
+    @patch("tinygrid.ercot.endpoints.dam_hourly_lmp")
     def test_get_dam_hourly_lmp_returns_dataframe(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -152,7 +152,7 @@ class TestEndpointReturnsDataFrame:
 class TestDataFrameColumnLabels:
     """Test that DataFrame columns have proper labels."""
 
-    @patch("tinygrid.ercot.lmp_electrical_bus")
+    @patch("tinygrid.ercot.endpoints.lmp_electrical_bus")
     def test_columns_use_field_labels(self, mock_endpoint, sample_single_page_response):
         """Test that DataFrame columns use field labels, not names."""
         mock_response = MagicMock()

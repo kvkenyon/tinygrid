@@ -1,5 +1,9 @@
-"""Historical data access for tinygrid."""
+"""Historical data access for tinygrid.
 
-from .ercot import ERCOTArchive
+Note: ERCOTArchive has been moved to tinygrid.ercot.archive.
+This module is kept for backward compatibility.
+"""
 
-__all__ = ["ERCOTArchive"]
+from ..ercot.archive import ArchiveLink, ERCOTArchive
+
+__all__ = ["ArchiveLink", "ERCOTArchive"]
