@@ -32,6 +32,10 @@ lint-fix:
 format:
     uv run ruff format .
 
+# Check code formatting (CI-friendly)
+format-check:
+    uv run ruff format --check .
+
 # Type check with pyright
 type-check:
     uv run pyright
