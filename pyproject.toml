@@ -7,12 +7,11 @@ authors = [
 description = "A unified Python SDK for accessing grid data from all major US Independent System Operators (ISOs)"
 requires-python = ">=3.10"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 keywords = ["ercot", "iso", "electricity", "grid", "energy", "api", "sdk"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
