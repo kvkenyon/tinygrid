@@ -61,9 +61,7 @@ class ERCOTAuth:
 
     config: ERCOTAuthConfig
     _cached_token: str | None = field(default=None, init=False, repr=False)
-    _token_expires_at: float | None = field(
-        default=None, init=False, repr=False
-    )
+    _token_expires_at: float | None = field(default=None, init=False, repr=False)
 
     def _is_token_valid(self) -> bool:
         """Check if the cached token is still valid.
@@ -120,8 +118,7 @@ class ERCOTAuth:
                     data = response.json()
                 except Exception as e:
                     raise GridAuthenticationError(
-                        f"Failed to parse authentication response as JSON: {e}. "
-                        f"Response: {response.text[:500]}",
+                        f"Failed to parse authentication response as JSON: {e}. Response: {response.text[:500]}",
                         status_code=response.status_code,
                         response_body=response.text,
                         endpoint=self.config.auth_url,
@@ -203,8 +200,7 @@ class ERCOTAuth:
                     data = response.json()
                 except Exception as e:
                     raise GridAuthenticationError(
-                        f"Failed to parse authentication response as JSON: {e}. "
-                        f"Response: {response.text[:500]}",
+                        f"Failed to parse authentication response as JSON: {e}. Response: {response.text[:500]}",
                         status_code=response.status_code,
                         response_body=response.text,
                         endpoint=self.config.auth_url,

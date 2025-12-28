@@ -165,9 +165,7 @@ class TestEndpointMethods:
             )
 
     @patch("tinygrid.ercot.lf_by_model_weather_zone")
-    def test_get_load_forecast_by_weather_zone_handles_timeout(
-        self, mock_endpoint
-    ):
+    def test_get_load_forecast_by_weather_zone_handles_timeout(self, mock_endpoint):
         """Test handling of timeout errors."""
         mock_endpoint.sync.side_effect = TimeoutError("Request timed out")
 

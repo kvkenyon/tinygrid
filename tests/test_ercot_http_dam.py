@@ -42,13 +42,11 @@ class TestDAMPricingHTTPRequests:
     """Test HTTP requests for DAM Pricing endpoints."""
 
     @respx.mock
-    def test_get_dam_hourly_lmp_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_hourly_lmp_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_hourly_lmp calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_hourly_lmp(
@@ -63,9 +61,9 @@ class TestDAMPricingHTTPRequests:
     @respx.mock
     def test_get_dam_hourly_lmp_passes_date_params(self, sample_dam_response):
         """Test get_dam_hourly_lmp passes date parameters correctly."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_hourly_lmp(
@@ -112,13 +110,11 @@ class TestDAMPricingHTTPRequests:
         assert "/np4-190-cd/dam_stlmnt_pnt_prices" in request.url.path
 
     @respx.mock
-    def test_get_dam_shadow_prices_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_shadow_prices_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_shadow_prices calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np4-191-cd/dam_shadow_prices"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-191-cd/dam_shadow_prices").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_shadow_prices()
@@ -142,13 +138,11 @@ class TestDAMPricingHTTPRequests:
         assert "/np4-33-cd/dam_as_plan" in request.url.path
 
     @respx.mock
-    def test_get_dam_system_lambda_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_system_lambda_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_system_lambda calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np4-523-cd/dam_system_lambda"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-523-cd/dam_system_lambda").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_system_lambda()
@@ -266,13 +260,11 @@ class TestDAM60DayDisclosureHTTPRequests:
         assert "/np3-966-er/60_dam_energy_bid_awards" in request.url.path
 
     @respx.mock
-    def test_get_dam_energy_bids_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_energy_bids_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_energy_bids calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_energy_bids"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_energy_bids").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_energy_bids()
@@ -330,13 +322,11 @@ class TestDAM60DayDisclosureHTTPRequests:
         assert "/np3-966-er/60_dam_gen_res_as_offers" in request.url.path
 
     @respx.mock
-    def test_get_dam_gen_res_data_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_gen_res_data_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_gen_res_data calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_gen_res_data"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_gen_res_data").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_gen_res_data()
@@ -362,13 +352,11 @@ class TestDAM60DayDisclosureHTTPRequests:
         assert "/np3-966-er/60_dam_load_res_as_offers" in request.url.path
 
     @respx.mock
-    def test_get_dam_load_res_data_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_load_res_data_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_load_res_data calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_load_res_data"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_load_res_data").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_load_res_data()
@@ -394,13 +382,11 @@ class TestDAM60DayDisclosureHTTPRequests:
         assert "/np3-966-er/60_dam_ptp_obl_bid_awards" in request.url.path
 
     @respx.mock
-    def test_get_dam_ptp_obl_bids_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_ptp_obl_bids_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_ptp_obl_bids calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_ptp_obl_bids"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_ptp_obl_bids").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_ptp_obl_bids()
@@ -410,13 +396,11 @@ class TestDAM60DayDisclosureHTTPRequests:
         assert "/np3-966-er/60_dam_ptp_obl_bids" in request.url.path
 
     @respx.mock
-    def test_get_dam_ptp_obl_opt_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_ptp_obl_opt_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_ptp_obl_opt calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_ptp_obl_opt"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_ptp_obl_opt").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_ptp_obl_opt()
@@ -442,13 +426,11 @@ class TestDAM60DayDisclosureHTTPRequests:
         assert "/np3-966-er/60_dam_ptp_obl_opt_awards" in request.url.path
 
     @respx.mock
-    def test_get_dam_qse_self_as_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_dam_qse_self_as_dispatches_correct_url(self, sample_dam_response):
         """Test get_dam_qse_self_as calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_qse_self_as"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-966-er/60_dam_qse_self_as").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_qse_self_as()
@@ -530,9 +512,7 @@ class TestDAMClearedASHTTPRequests:
     """Test HTTP requests for 2-Day Cleared DAM AS endpoints."""
 
     @respx.mock
-    def test_get_cleared_dam_as_ecrsm_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_cleared_dam_as_ecrsm_dispatches_correct_url(self, sample_dam_response):
         """Test get_cleared_dam_as_ecrsm calls correct endpoint."""
         route = respx.get(
             f"{ERCOT_API_BASE_URL}/np3-911-er/2d_cleared_dam_as_ecrsm"
@@ -546,9 +526,7 @@ class TestDAMClearedASHTTPRequests:
         assert "/np3-911-er/2d_cleared_dam_as_ecrsm" in request.url.path
 
     @respx.mock
-    def test_get_cleared_dam_as_regup_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_cleared_dam_as_regup_dispatches_correct_url(self, sample_dam_response):
         """Test get_cleared_dam_as_regup calls correct endpoint."""
         route = respx.get(
             f"{ERCOT_API_BASE_URL}/np3-911-er/2d_cleared_dam_as_regup"
@@ -562,9 +540,7 @@ class TestDAMClearedASHTTPRequests:
         assert "/np3-911-er/2d_cleared_dam_as_regup" in request.url.path
 
     @respx.mock
-    def test_get_cleared_dam_as_nspin_dispatches_correct_url(
-        self, sample_dam_response
-    ):
+    def test_get_cleared_dam_as_nspin_dispatches_correct_url(self, sample_dam_response):
         """Test get_cleared_dam_as_nspin calls correct endpoint."""
         route = respx.get(
             f"{ERCOT_API_BASE_URL}/np3-911-er/2d_cleared_dam_as_nspin"
@@ -636,9 +612,9 @@ class TestDAMHTTPMethod:
     @respx.mock
     def test_dam_pricing_uses_get_method(self, sample_dam_response):
         """Test that DAM pricing endpoints use GET method."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT()
         ercot.get_dam_hourly_lmp(
@@ -657,9 +633,9 @@ class TestDAMPaginationParams:
     @respx.mock
     def test_dam_pricing_includes_pagination_params(self, sample_dam_response):
         """Test that DAM pricing includes page and size in request."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp"
-        ).mock(return_value=httpx.Response(200, json=sample_dam_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-183-cd/dam_hourly_lmp").mock(
+            return_value=httpx.Response(200, json=sample_dam_response)
+        )
 
         ercot = ERCOT(page_size=5000)
         ercot.get_dam_hourly_lmp(

@@ -18,20 +18,20 @@ __version__ = "0.1.0"
 __all__ = (
     # Client
     "ERCOT",
+    # Historical
+    "ERCOTArchive",
     # Auth
     "ERCOTAuth",
     "ERCOTAuthConfig",
-    # Constants/Enums
-    "Market",
-    "LocationType",
-    "SettlementPointType",
-    # Historical
-    "ERCOTArchive",
-    # Errors
-    "GridError",
-    "GridTimeoutError",
     "GridAPIError",
     "GridAuthenticationError",
+    # Errors
+    "GridError",
     "GridRateLimitError",
     "GridRetryExhaustedError",
+    "GridTimeoutError",
+    "LocationType",
+    # Constants/Enums
+    "Market",
+    "SettlementPointType",
 )

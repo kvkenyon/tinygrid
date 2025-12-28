@@ -153,9 +153,7 @@ class TestDataFrameColumnLabels:
     """Test that DataFrame columns have proper labels."""
 
     @patch("tinygrid.ercot.lmp_electrical_bus")
-    def test_columns_use_field_labels(
-        self, mock_endpoint, sample_single_page_response
-    ):
+    def test_columns_use_field_labels(self, mock_endpoint, sample_single_page_response):
         """Test that DataFrame columns use field labels, not names."""
         mock_response = MagicMock()
         mock_response.to_dict.return_value = sample_single_page_response

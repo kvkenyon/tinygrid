@@ -55,9 +55,7 @@ class BaseISOClient(ABC):
             raise ValueError(f"Datetime must be a string, got {type(datetime)}")
         return datetime.strip()
 
-    def _handle_error(
-        self, error: Exception, endpoint: str | None = None
-    ) -> None:
+    def _handle_error(self, error: Exception, endpoint: str | None = None) -> None:
         """Handle errors according to the client's error handling policy.
 
         Args:

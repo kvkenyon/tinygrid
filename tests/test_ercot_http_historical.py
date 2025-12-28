@@ -44,17 +44,13 @@ def sample_archive_listing_response():
             {
                 "postDatetime": "2024-01-01T00:00:00",
                 "_links": {
-                    "endpoint": {
-                        "href": "/archive/np6-905-cd/download?docId=12345"
-                    }
+                    "endpoint": {"href": "/archive/np6-905-cd/download?docId=12345"}
                 },
             },
             {
                 "postDatetime": "2024-01-02T00:00:00",
                 "_links": {
-                    "endpoint": {
-                        "href": "/archive/np6-905-cd/download?docId=12346"
-                    }
+                    "endpoint": {"href": "/archive/np6-905-cd/download?docId=12346"}
                 },
             },
         ],
@@ -117,12 +113,8 @@ class TestArchiveLinksHTTPRequests:
         self, mock_ercot_client, sample_archive_listing_response
     ):
         """Test get_archive_links calls correct endpoint URL."""
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd").mock(
+            return_value=httpx.Response(200, json=sample_archive_listing_response)
         )
 
         archive = ERCOTArchive(client=mock_ercot_client)
@@ -141,12 +133,8 @@ class TestArchiveLinksHTTPRequests:
         self, mock_ercot_client, sample_archive_listing_response
     ):
         """Test get_archive_links passes date parameters correctly."""
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd").mock(
+            return_value=httpx.Response(200, json=sample_archive_listing_response)
         )
 
         archive = ERCOTArchive(client=mock_ercot_client)
@@ -167,12 +155,8 @@ class TestArchiveLinksHTTPRequests:
         self, mock_ercot_client, sample_archive_listing_response
     ):
         """Test get_archive_links includes page and size parameters."""
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd").mock(
+            return_value=httpx.Response(200, json=sample_archive_listing_response)
         )
 
         archive = ERCOTArchive(client=mock_ercot_client)
@@ -193,12 +177,8 @@ class TestArchiveLinksHTTPRequests:
         self, mock_ercot_client, sample_archive_listing_response
     ):
         """Test get_archive_links uses HTTP GET method."""
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd").mock(
+            return_value=httpx.Response(200, json=sample_archive_listing_response)
         )
 
         archive = ERCOTArchive(client=mock_ercot_client)
@@ -217,12 +197,8 @@ class TestArchiveLinksHTTPRequests:
         self, mock_ercot_client, sample_archive_listing_response
     ):
         """Test get_archive_links correctly substitutes different emil_id values."""
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np4-183-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np4-183-cd").mock(
+            return_value=httpx.Response(200, json=sample_archive_listing_response)
         )
 
         archive = ERCOTArchive(client=mock_ercot_client)
@@ -266,9 +242,7 @@ class TestArchiveLinksHTTPRequests:
         }
 
         # Set up routes for both pages
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd").mock(
             side_effect=[
                 httpx.Response(200, json=page1_response),
                 httpx.Response(200, json=page2_response),
@@ -382,11 +356,7 @@ class TestFetchHistoricalHTTPRequests:
         # Mock archive listing
         archive_route = respx.get(
             f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
-        )
+        ).mock(return_value=httpx.Response(200, json=sample_archive_listing_response))
 
         # Mock bulk download
         download_route = respx.post(
@@ -415,15 +385,11 @@ class TestFetchHistoricalHTTPRequests:
         # Mock archive listing - should extract np6-905-cd from endpoint
         archive_route = respx.get(
             f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
-        )
+        ).mock(return_value=httpx.Response(200, json=sample_archive_listing_response))
 
-        respx.post(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd/download"
-        ).mock(return_value=httpx.Response(200, content=mock_zip))
+        respx.post(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd/download").mock(
+            return_value=httpx.Response(200, content=mock_zip)
+        )
 
         archive = ERCOTArchive(client=mock_ercot_client)
         archive.fetch_historical(
@@ -452,12 +418,8 @@ class TestHistoricalAuthHeaders:
         client.auth.get_token.return_value = "test-token-123"
         client.auth.get_subscription_key.return_value = "test-subscription-key"
 
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd").mock(
+            return_value=httpx.Response(200, json=sample_archive_listing_response)
         )
 
         archive = ERCOTArchive(client=client)
@@ -473,22 +435,15 @@ class TestHistoricalAuthHeaders:
         assert "Authorization" in request.headers
         assert request.headers["Authorization"] == "Bearer test-token-123"
         assert "Ocp-Apim-Subscription-Key" in request.headers
-        assert (
-            request.headers["Ocp-Apim-Subscription-Key"]
-            == "test-subscription-key"
-        )
+        assert request.headers["Ocp-Apim-Subscription-Key"] == "test-subscription-key"
 
     @respx.mock
     def test_unauthenticated_request_has_no_auth_headers(
         self, mock_ercot_client, sample_archive_listing_response
     ):
         """Test that unauthenticated requests don't include auth headers."""
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd"
-        ).mock(
-            return_value=httpx.Response(
-                200, json=sample_archive_listing_response
-            )
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/np6-905-cd").mock(
+            return_value=httpx.Response(200, json=sample_archive_listing_response)
         )
 
         archive = ERCOTArchive(client=mock_ercot_client)
@@ -510,9 +465,9 @@ class TestHistoricalErrorHandling:
     @respx.mock
     def test_get_archive_links_handles_404(self, mock_ercot_client):
         """Test get_archive_links handles 404 Not Found."""
-        route = respx.get(
-            f"{ERCOT_PUBLIC_API_BASE_URL}/archive/nonexistent-id"
-        ).mock(return_value=httpx.Response(404, json={"error": "Not Found"}))
+        route = respx.get(f"{ERCOT_PUBLIC_API_BASE_URL}/archive/nonexistent-id").mock(
+            return_value=httpx.Response(404, json={"error": "Not Found"})
+        )
 
         archive = ERCOTArchive(client=mock_ercot_client)
 

@@ -45,9 +45,9 @@ class TestLoadForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_load_forecast_by_weather_zone calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_load_forecast_by_weather_zone(
@@ -64,9 +64,9 @@ class TestLoadForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_load_forecast_by_weather_zone passes date parameters correctly."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_load_forecast_by_weather_zone(
@@ -85,9 +85,9 @@ class TestLoadForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test date normalization strips whitespace."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_load_forecast_by_weather_zone(
@@ -106,9 +106,9 @@ class TestLoadForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_load_forecast_by_study_area calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-566-cd/lf_by_model_study_area").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np3-566-cd/lf_by_model_study_area"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_load_forecast_by_study_area(
@@ -125,9 +125,9 @@ class TestLoadForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_load_forecast_by_study_area passes model parameter."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-566-cd/lf_by_model_study_area").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np3-566-cd/lf_by_model_study_area"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_load_forecast_by_study_area(
@@ -186,9 +186,9 @@ class TestWindPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_wpp_hourly_average_actual_forecast calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-732-cd/wpp_hrly_avrg_actl_fcast").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-732-cd/wpp_hrly_avrg_actl_fcast"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_wpp_hourly_average_actual_forecast()
@@ -202,9 +202,9 @@ class TestWindPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_wpp_actual_5min_avg_values calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-733-cd/wpp_actual_5min_avg_values").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-733-cd/wpp_actual_5min_avg_values"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_wpp_actual_5min_avg_values()
@@ -218,9 +218,9 @@ class TestWindPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_wpp_hourly_actual_forecast_geo calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-742-cd/wpp_hrly_actual_fcast_geo").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-742-cd/wpp_hrly_actual_fcast_geo"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_wpp_hourly_actual_forecast_geo()
@@ -234,9 +234,9 @@ class TestWindPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_wpp_actual_5min_avg_values_geo calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-743-cd/wpp_actual_5min_avg_values_geo").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-743-cd/wpp_actual_5min_avg_values_geo"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_wpp_actual_5min_avg_values_geo()
@@ -254,9 +254,9 @@ class TestSolarPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_spp_hourly_average_actual_forecast calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-737-cd/spp_hrly_avrg_actl_fcast").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-737-cd/spp_hrly_avrg_actl_fcast"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_spp_hourly_average_actual_forecast()
@@ -270,9 +270,9 @@ class TestSolarPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_spp_actual_5min_avg_values calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-738-cd/spp_actual_5min_avg_values").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-738-cd/spp_actual_5min_avg_values"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_spp_actual_5min_avg_values()
@@ -286,9 +286,9 @@ class TestSolarPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_spp_hourly_actual_forecast_geo calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-745-cd/spp_hrly_actual_fcast_geo").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-745-cd/spp_hrly_actual_fcast_geo"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_spp_hourly_actual_forecast_geo()
@@ -302,9 +302,9 @@ class TestSolarPowerForecastHTTPRequests:
         self, sample_forecast_response
     ):
         """Test get_spp_actual_5min_avg_values_geo calls correct endpoint."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-746-cd/spp_actual_5min_avg_values_geo").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-746-cd/spp_actual_5min_avg_values_geo"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_spp_actual_5min_avg_values_geo()
@@ -320,9 +320,9 @@ class TestForecastPaginationParams:
     @respx.mock
     def test_load_forecast_includes_pagination_params(self, sample_forecast_response):
         """Test that load forecast includes page and size in request."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT(page_size=5000)
         ercot.get_load_forecast_by_weather_zone(
@@ -339,9 +339,9 @@ class TestForecastPaginationParams:
     @respx.mock
     def test_wind_forecast_includes_pagination_params(self, sample_forecast_response):
         """Test that wind forecast includes pagination parameters."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-732-cd/wpp_hrly_avrg_actl_fcast").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-732-cd/wpp_hrly_avrg_actl_fcast"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT(page_size=1000)
         ercot.get_wpp_hourly_average_actual_forecast()
@@ -358,9 +358,9 @@ class TestForecastHTTPMethod:
     @respx.mock
     def test_load_forecast_uses_get_method(self, sample_forecast_response):
         """Test that load forecast uses GET method."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np3-565-cd/lf_by_model_weather_zone"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_load_forecast_by_weather_zone(
@@ -375,9 +375,9 @@ class TestForecastHTTPMethod:
     @respx.mock
     def test_wind_forecast_uses_get_method(self, sample_forecast_response):
         """Test that wind forecast uses GET method."""
-        route = respx.get(f"{ERCOT_API_BASE_URL}/np4-732-cd/wpp_hrly_avrg_actl_fcast").mock(
-            return_value=httpx.Response(200, json=sample_forecast_response)
-        )
+        route = respx.get(
+            f"{ERCOT_API_BASE_URL}/np4-732-cd/wpp_hrly_avrg_actl_fcast"
+        ).mock(return_value=httpx.Response(200, json=sample_forecast_response))
 
         ercot = ERCOT()
         ercot.get_wpp_hourly_average_actual_forecast()

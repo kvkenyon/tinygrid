@@ -103,9 +103,7 @@ class ERCOTArchive:
             if page == 1:
                 meta = response.get("_meta", {})
                 total_pages = meta.get("totalPages", 1)
-                logger.debug(
-                    f"Archive listing: {total_pages} pages for {emil_id}"
-                )
+                logger.debug(f"Archive listing: {total_pages} pages for {emil_id}")
 
             archives = response.get("archives", [])
             for archive in archives:
@@ -205,9 +203,7 @@ class ERCOTArchive:
         links = self.get_archive_links(emil_id, start, end)
 
         if not links:
-            logger.warning(
-                f"No archives found for {endpoint} from {start} to {end}"
-            )
+            logger.warning(f"No archives found for {endpoint} from {start} to {end}")
             return pd.DataFrame()
 
         # Extract doc IDs and bulk download
@@ -268,8 +264,7 @@ class ERCOTArchive:
 
         with ThreadPoolExecutor(max_workers=self.max_concurrent) as executor:
             futures = {
-                executor.submit(self._download_single, link): link
-                for link in links
+                executor.submit(self._download_single, link): link for link in links
             }
 
             for future in as_completed(futures):
@@ -315,13 +310,9 @@ class ERCOTArchive:
         try:
             with httpx.Client(timeout=self.timeout) as http_client:
                 if method == "POST":
-                    response = http_client.post(
-                        url, json=params, headers=headers
-                    )
+                    response = http_client.post(url, json=params, headers=headers)
                 else:
-                    response = http_client.get(
-                        url, params=params, headers=headers
-                    )
+                    response = http_client.get(url, params=params, headers=headers)
 
                 if response.status_code == 429:
                     raise GridRetryExhaustedError(

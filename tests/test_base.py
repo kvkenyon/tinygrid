@@ -65,12 +65,10 @@ class TestBaseISOClient:
         """Test datetime normalization."""
         client = ConcreteISOClient(base_url="https://api.test.com")
         assert (
-            client._normalize_datetime("2024-01-01T00:00:00")
-            == "2024-01-01T00:00:00"
+            client._normalize_datetime("2024-01-01T00:00:00") == "2024-01-01T00:00:00"
         )
         assert (
-            client._normalize_datetime(" 2024-01-01T00:00:00 ")
-            == "2024-01-01T00:00:00"
+            client._normalize_datetime(" 2024-01-01T00:00:00 ") == "2024-01-01T00:00:00"
         )
 
     def test_normalize_datetime_invalid_type(self):
@@ -81,9 +79,7 @@ class TestBaseISOClient:
 
     def test_handle_error_raises_when_enabled(self):
         """Test error handling raises when raise_on_error is True."""
-        client = ConcreteISOClient(
-            base_url="https://api.test.com", raise_on_error=True
-        )
+        client = ConcreteISOClient(base_url="https://api.test.com", raise_on_error=True)
         error = ValueError("Test error")
 
         with pytest.raises(GridError):
@@ -103,9 +99,7 @@ class TestBaseISOClient:
         """Test that GridErrors are preserved."""
         from tinygrid.errors import GridAPIError
 
-        client = ConcreteISOClient(
-            base_url="https://api.test.com", raise_on_error=True
-        )
+        client = ConcreteISOClient(base_url="https://api.test.com", raise_on_error=True)
         original_error = GridAPIError("Original error", status_code=500)
 
         with pytest.raises(GridAPIError) as exc_info:

@@ -84,9 +84,7 @@ class TestProductsHTTPRequests:
                 {
                     "postDatetime": "2024-01-01T00:00:00",
                     "_links": {
-                        "endpoint": {
-                            "href": "/archive/np6-905-cd/download?docId=12345"
-                        }
+                        "endpoint": {"href": "/archive/np6-905-cd/download?docId=12345"}
                     },
                 }
             ],
@@ -220,9 +218,7 @@ class TestProductsErrorHandling:
     def test_get_version_handles_500_response(self):
         """Test get_version handles server errors."""
         route = respx.get(f"{ERCOT_API_BASE_URL}/version").mock(
-            return_value=httpx.Response(
-                500, json={"error": "Internal Server Error"}
-            )
+            return_value=httpx.Response(500, json={"error": "Internal Server Error"})
         )
 
         ercot = ERCOT(max_retries=0)

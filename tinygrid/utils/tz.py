@@ -35,17 +35,13 @@ def resolve_ambiguous_dst(
     dt_series = pd.to_datetime(timestamps)
 
     # Use DSTFlag to resolve ambiguous times (DST=True, Standard=False)
-    ambiguous = (
-        dst_flags.fillna(True).astype(bool) if dst_flags is not None else True
-    )
+    ambiguous = dst_flags.fillna(True).astype(bool) if dst_flags is not None else True
 
     try:
         return dt_series.dt.tz_localize(tz, ambiguous=ambiguous)
     except pytz.exceptions.AmbiguousTimeError:
         # Fallback: handle row by row
-        return dt_series.apply(
-            lambda x: _localize_single(x, tz, ambiguous=True)
-        )
+        return dt_series.apply(lambda x: _localize_single(x, tz, ambiguous=True))
 
 
 def localize_with_dst(

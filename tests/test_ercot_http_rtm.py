@@ -41,13 +41,11 @@ class TestRTMPricingHTTPRequests:
     """Test HTTP requests for RTM Pricing endpoints."""
 
     @respx.mock
-    def test_get_spp_node_zone_hub_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_spp_node_zone_hub_dispatches_correct_url(self, sample_rtm_response):
         """Test get_spp_node_zone_hub calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_spp_node_zone_hub()
@@ -57,13 +55,11 @@ class TestRTMPricingHTTPRequests:
         assert "/np6-905-cd/spp_node_zone_hub" in request.url.path
 
     @respx.mock
-    def test_get_spp_node_zone_hub_passes_date_params(
-        self, sample_rtm_response
-    ):
+    def test_get_spp_node_zone_hub_passes_date_params(self, sample_rtm_response):
         """Test get_spp_node_zone_hub passes date parameters correctly."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_spp_node_zone_hub(
@@ -78,13 +74,11 @@ class TestRTMPricingHTTPRequests:
         assert "deliveryDateTo=2024-01-02" in query_str
 
     @respx.mock
-    def test_get_spp_node_zone_hub_passes_settlement_point(
-        self, sample_rtm_response
-    ):
+    def test_get_spp_node_zone_hub_passes_settlement_point(self, sample_rtm_response):
         """Test get_spp_node_zone_hub passes settlement_point parameter."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_spp_node_zone_hub(settlement_point="LZ_HOUSTON")
@@ -95,13 +89,11 @@ class TestRTMPricingHTTPRequests:
         assert "settlementPoint=LZ_HOUSTON" in query_str
 
     @respx.mock
-    def test_get_lmp_node_zone_hub_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_lmp_node_zone_hub_dispatches_correct_url(self, sample_rtm_response):
         """Test get_lmp_node_zone_hub calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-788-cd/lmp_node_zone_hub"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-788-cd/lmp_node_zone_hub").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_lmp_node_zone_hub()
@@ -111,13 +103,11 @@ class TestRTMPricingHTTPRequests:
         assert "/np6-788-cd/lmp_node_zone_hub" in request.url.path
 
     @respx.mock
-    def test_get_lmp_electrical_bus_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_lmp_electrical_bus_dispatches_correct_url(self, sample_rtm_response):
         """Test get_lmp_electrical_bus calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-787-cd/lmp_electrical_bus"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-787-cd/lmp_electrical_bus").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_lmp_electrical_bus()
@@ -127,13 +117,11 @@ class TestRTMPricingHTTPRequests:
         assert "/np6-787-cd/lmp_electrical_bus" in request.url.path
 
     @respx.mock
-    def test_get_sced_system_lambda_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_sced_system_lambda_dispatches_correct_url(self, sample_rtm_response):
         """Test get_sced_system_lambda calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-322-cd/sced_system_lambda"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-322-cd/sced_system_lambda").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_sced_system_lambda()
@@ -179,13 +167,11 @@ class TestRTMOperationsHTTPRequests:
     """Test HTTP requests for RTM Operations endpoints (2-day aggregate)."""
 
     @respx.mock
-    def test_get_aggregated_dsr_loads_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_aggregated_dsr_loads_dispatches_correct_url(self, sample_rtm_response):
         """Test get_aggregated_dsr_loads calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_dsr_loads"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_dsr_loads").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_aggregated_dsr_loads()
@@ -199,9 +185,9 @@ class TestRTMOperationsHTTPRequests:
         self, sample_rtm_response
     ):
         """Test get_aggregated_generation_summary calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_gen_summary"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_gen_summary").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_aggregated_generation_summary()
@@ -231,9 +217,9 @@ class TestRTMOperationsHTTPRequests:
         self, sample_rtm_response
     ):
         """Test get_aggregated_load_summary calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_load_summary"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_load_summary").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_aggregated_load_summary()
@@ -247,9 +233,9 @@ class TestRTMOperationsHTTPRequests:
         self, sample_rtm_response
     ):
         """Test get_aggregated_outage_schedule calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_out_sched"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-910-er/2d_agg_out_sched").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_aggregated_outage_schedule()
@@ -263,9 +249,7 @@ class TestRTM60DaySCEDDisclosureHTTPRequests:
     """Test HTTP requests for 60-Day SCED Disclosure endpoints."""
 
     @respx.mock
-    def test_get_sced_dsr_load_data_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_sced_dsr_load_data_dispatches_correct_url(self, sample_rtm_response):
         """Test get_sced_dsr_load_data calls correct endpoint."""
         route = respx.get(
             f"{ERCOT_API_BASE_URL}/np3-965-er/60_sced_dsr_load_data"
@@ -279,13 +263,11 @@ class TestRTM60DaySCEDDisclosureHTTPRequests:
         assert "/np3-965-er/60_sced_dsr_load_data" in request.url.path
 
     @respx.mock
-    def test_get_sced_gen_res_data_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_sced_gen_res_data_dispatches_correct_url(self, sample_rtm_response):
         """Test get_sced_gen_res_data calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-965-er/60_sced_gen_res_data"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-965-er/60_sced_gen_res_data").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_sced_gen_res_data()
@@ -295,13 +277,11 @@ class TestRTM60DaySCEDDisclosureHTTPRequests:
         assert "/np3-965-er/60_sced_gen_res_data" in request.url.path
 
     @respx.mock
-    def test_get_sced_smne_gen_res_dispatches_correct_url(
-        self, sample_rtm_response
-    ):
+    def test_get_sced_smne_gen_res_dispatches_correct_url(self, sample_rtm_response):
         """Test get_sced_smne_gen_res calls correct endpoint."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np3-965-er/60_sced_smne_gen_res"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np3-965-er/60_sced_smne_gen_res").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_sced_smne_gen_res()
@@ -424,9 +404,7 @@ class TestRTMSASMHTTPRequests:
 
         assert route.called
         request = route.calls.last.request
-        assert (
-            "/np3-990-ex/60_sasm_load_res_as_offer_awards" in request.url.path
-        )
+        assert "/np3-990-ex/60_sasm_load_res_as_offer_awards" in request.url.path
 
 
 class TestRTMPriceCorrectionsHTTPRequests:
@@ -555,9 +533,9 @@ class TestRTMHTTPMethod:
     @respx.mock
     def test_rtm_pricing_uses_get_method(self, sample_rtm_response):
         """Test that RTM pricing endpoints use GET method."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT()
         ercot.get_spp_node_zone_hub()
@@ -573,9 +551,9 @@ class TestRTMPaginationParams:
     @respx.mock
     def test_rtm_pricing_includes_pagination_params(self, sample_rtm_response):
         """Test that RTM pricing includes page and size in request."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-905-cd/spp_node_zone_hub").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT(page_size=5000)
         ercot.get_spp_node_zone_hub()
@@ -589,9 +567,9 @@ class TestRTMPaginationParams:
     @respx.mock
     def test_lmp_includes_custom_page_size(self, sample_rtm_response):
         """Test that LMP endpoints respect custom page size."""
-        route = respx.get(
-            f"{ERCOT_API_BASE_URL}/np6-787-cd/lmp_electrical_bus"
-        ).mock(return_value=httpx.Response(200, json=sample_rtm_response))
+        route = respx.get(f"{ERCOT_API_BASE_URL}/np6-787-cd/lmp_electrical_bus").mock(
+            return_value=httpx.Response(200, json=sample_rtm_response)
+        )
 
         ercot = ERCOT(page_size=2500)
         ercot.get_lmp_electrical_bus()

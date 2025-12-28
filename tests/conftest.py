@@ -222,17 +222,13 @@ def sample_archive_response():
             {
                 "postDatetime": "2024-01-01T00:00:00",
                 "_links": {
-                    "endpoint": {
-                        "href": "/archive/np6-905-cd/download?docId=12345"
-                    }
+                    "endpoint": {"href": "/archive/np6-905-cd/download?docId=12345"}
                 },
             },
             {
                 "postDatetime": "2024-01-02T00:00:00",
                 "_links": {
-                    "endpoint": {
-                        "href": "/archive/np6-905-cd/download?docId=12346"
-                    }
+                    "endpoint": {"href": "/archive/np6-905-cd/download?docId=12346"}
                 },
             },
         ],
@@ -252,17 +248,13 @@ def sample_archive_listing_response():
             {
                 "postDatetime": "2024-01-01T00:00:00",
                 "_links": {
-                    "endpoint": {
-                        "href": "/archive/np6-905-cd/download?docId=12345"
-                    }
+                    "endpoint": {"href": "/archive/np6-905-cd/download?docId=12345"}
                 },
             },
             {
                 "postDatetime": "2024-01-02T00:00:00",
                 "_links": {
-                    "endpoint": {
-                        "href": "/archive/np6-905-cd/download?docId=12346"
-                    }
+                    "endpoint": {"href": "/archive/np6-905-cd/download?docId=12346"}
                 },
             },
         ],

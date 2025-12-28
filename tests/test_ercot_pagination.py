@@ -88,9 +88,7 @@ class TestFetchAllPages:
             },
             "fields": sample_fields,
             "data": {
-                "records": [
-                    ["2024-01-01", False, "BUS001", 25.0] for _ in range(5)
-                ]
+                "records": [["2024-01-01", False, "BUS001", 25.0] for _ in range(5)]
             },
         }
         page2_response = {
@@ -102,9 +100,7 @@ class TestFetchAllPages:
             },
             "fields": sample_fields,
             "data": {
-                "records": [
-                    ["2024-01-01", False, "BUS002", 26.0] for _ in range(5)
-                ]
+                "records": [["2024-01-01", False, "BUS002", 26.0] for _ in range(5)]
             },
         }
         page3_response = {
@@ -116,9 +112,7 @@ class TestFetchAllPages:
             },
             "fields": sample_fields,
             "data": {
-                "records": [
-                    ["2024-01-01", False, "BUS003", 27.0] for _ in range(5)
-                ]
+                "records": [["2024-01-01", False, "BUS003", 27.0] for _ in range(5)]
             },
         }
 
@@ -215,9 +209,7 @@ class TestFetchAllPages:
             },
             "fields": sample_fields,
             "data": {
-                "records": [
-                    ["2024-01-01", False, "BUS001", 25.0] for _ in range(5)
-                ]
+                "records": [["2024-01-01", False, "BUS001", 25.0] for _ in range(5)]
             },
         }
         page2_response = {
@@ -231,9 +223,7 @@ class TestFetchAllPages:
                 {"name": "different", "label": "Different Field"}
             ],  # Different fields
             "data": {
-                "records": [
-                    ["2024-01-01", False, "BUS002", 26.0] for _ in range(5)
-                ]
+                "records": [["2024-01-01", False, "BUS002", 26.0] for _ in range(5)]
             },
         }
 
@@ -277,9 +267,7 @@ class TestCallEndpoint:
         ercot = ERCOT(retry_min_wait=0.01, retry_max_wait=0.1)
         ercot._client = MagicMock()
 
-        result = ercot._call_endpoint(
-            mock_endpoint, "test_endpoint", fetch_all=True
-        )
+        result = ercot._call_endpoint(mock_endpoint, "test_endpoint", fetch_all=True)
 
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 5
@@ -298,9 +286,7 @@ class TestCallEndpoint:
         ercot = ERCOT(retry_min_wait=0.01, retry_max_wait=0.1)
         ercot._client = MagicMock()
 
-        result = ercot._call_endpoint(
-            mock_endpoint, "test_endpoint", fetch_all=False
-        )
+        result = ercot._call_endpoint(mock_endpoint, "test_endpoint", fetch_all=False)
 
         # Should only be called once
         assert mock_endpoint.sync.call_count == 1

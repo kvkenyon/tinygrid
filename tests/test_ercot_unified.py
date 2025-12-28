@@ -101,9 +101,7 @@ class TestERCOTUnifiedMethods:
             }
         )
 
-        result = ercot._filter_by_location(
-            df, location_type=LocationType.LOAD_ZONE
-        )
+        result = ercot._filter_by_location(df, location_type=LocationType.LOAD_ZONE)
 
         assert len(result) == 2
         assert set(result["Settlement Point"]) == {"LZ_HOUSTON", "LZ_NORTH"}
@@ -122,9 +120,7 @@ class TestERCOTUnifiedMethods:
             }
         )
 
-        result = ercot._filter_by_location(
-            df, location_type=LocationType.TRADING_HUB
-        )
+        result = ercot._filter_by_location(df, location_type=LocationType.TRADING_HUB)
 
         assert len(result) == 2
         assert set(result["Settlement Point"]) == {"HB_NORTH", "HB_SOUTH"}
@@ -143,9 +139,7 @@ class TestERCOTUnifiedMethods:
             }
         )
 
-        result = ercot._filter_by_location(
-            df, locations=["LZ_HOUSTON", "LZ_NORTH"]
-        )
+        result = ercot._filter_by_location(df, locations=["LZ_HOUSTON", "LZ_NORTH"])
 
         assert len(result) == 2
         assert set(result["Settlement Point"]) == {"LZ_HOUSTON", "LZ_NORTH"}
@@ -153,9 +147,7 @@ class TestERCOTUnifiedMethods:
     def test_filter_by_location_empty_df(self, ercot):
         """Test filtering empty DataFrame."""
         df = pd.DataFrame()
-        result = ercot._filter_by_location(
-            df, location_type=LocationType.LOAD_ZONE
-        )
+        result = ercot._filter_by_location(df, location_type=LocationType.LOAD_ZONE)
         assert result.empty
 
     def test_should_use_historical_old_date(self, ercot):
@@ -175,9 +167,7 @@ class TestERCOTUnifiedMethods:
 
     def test_needs_historical_yesterday(self, ercot):
         """Test that yesterday needs historical for real-time data."""
-        yesterday = pd.Timestamp.now(
-            tz="US/Central"
-        ).normalize() - pd.Timedelta(days=1)
+        yesterday = pd.Timestamp.now(tz="US/Central").normalize() - pd.Timedelta(days=1)
         assert ercot._needs_historical(yesterday, "real_time") is True
 
     def test_needs_historical_day_ahead_recent(self, ercot):
@@ -187,9 +177,7 @@ class TestERCOTUnifiedMethods:
 
     def test_needs_historical_day_ahead_old(self, ercot):
         """Test that old dates need historical for day-ahead."""
-        old = pd.Timestamp.now(tz="US/Central").normalize() - pd.Timedelta(
-            days=10
-        )
+        old = pd.Timestamp.now(tz="US/Central").normalize() - pd.Timedelta(days=10)
         assert ercot._needs_historical(old, "day_ahead") is True
 
     @patch.object(ERCOT, "get_spp_node_zone_hub")
@@ -208,18 +196,14 @@ class TestERCOTUnifiedMethods:
         mock_method.assert_called_once()
 
     @patch.object(ERCOT, "_get_archive")
-    def test_get_spp_real_time_yesterday_uses_historical(
-        self, mock_archive, ercot
-    ):
+    def test_get_spp_real_time_yesterday_uses_historical(self, mock_archive, ercot):
         """Test get_spp uses historical archive for yesterday's real-time data."""
         mock_archive.return_value.fetch_historical.return_value = pd.DataFrame(
             {
                 "Settlement Point": ["LZ_HOUSTON"],
                 "SPP": [50.0],
                 "Delivery Date": [
-                    (pd.Timestamp.now() - pd.Timedelta(days=1)).strftime(
-                        "%Y-%m-%d"
-                    )
+                    (pd.Timestamp.now() - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
                 ],
             }
         )

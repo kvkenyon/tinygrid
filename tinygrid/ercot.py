@@ -335,10 +335,7 @@ class ERCOT(BaseISOClient):
 
         Cleans up the client that was entered, not necessarily the current client.
         """
-        if (
-            hasattr(self, "_entered_client")
-            and self._entered_client is not None
-        ):
+        if hasattr(self, "_entered_client") and self._entered_client is not None:
             self._entered_client.__exit__(*args, **kwargs)
             self._entered_client = None
 
@@ -356,16 +353,11 @@ class ERCOT(BaseISOClient):
 
         Cleans up the client that was entered, not necessarily the current client.
         """
-        if (
-            hasattr(self, "_entered_client")
-            and self._entered_client is not None
-        ):
+        if hasattr(self, "_entered_client") and self._entered_client is not None:
             await self._entered_client.__aexit__(*args, **kwargs)
             self._entered_client = None
 
-    def _handle_api_error(
-        self, error: Exception, endpoint: str | None = None
-    ) -> None:
+    def _handle_api_error(self, error: Exception, endpoint: str | None = None) -> None:
         """Handle API errors and convert them to GridError types.
 
         Args:
@@ -588,9 +580,7 @@ class ERCOT(BaseISOClient):
             # Remove any pagination params that might have been passed
             kwargs.pop("page", None)
             kwargs.pop("size", None)
-            first_page = self._call_with_retry(
-                endpoint_func, endpoint_name, **kwargs
-            )
+            first_page = self._call_with_retry(endpoint_func, endpoint_name, **kwargs)
 
         # Extract records and fields from first page
         data = first_page.get("data", {})
@@ -620,8 +610,7 @@ class ERCOT(BaseISOClient):
         current_page = meta.get("currentPage", 1)
 
         logger.debug(
-            f"{endpoint_name}: Page {current_page}/{total_pages}, "
-            f"records so far: {len(all_records)}"
+            f"{endpoint_name}: Page {current_page}/{total_pages}, records so far: {len(all_records)}"
         )
 
         # Fetch remaining pages in parallel if there are more
@@ -629,9 +618,7 @@ class ERCOT(BaseISOClient):
             pages_to_fetch = list(range(2, total_pages + 1))
 
             with ThreadPoolExecutor(
-                max_workers=min(
-                    self.max_concurrent_requests, len(pages_to_fetch)
-                )
+                max_workers=min(self.max_concurrent_requests, len(pages_to_fetch))
             ) as executor:
                 # Submit all page requests
                 future_to_page = {
@@ -671,8 +658,7 @@ class ERCOT(BaseISOClient):
                         raise
 
         logger.info(
-            f"{endpoint_name}: Fetched {len(all_records)} total records "
-            f"from {total_pages} page(s)"
+            f"{endpoint_name}: Fetched {len(all_records)} total records from {total_pages} page(s)"
         )
 
         return all_records, fields
@@ -698,8 +684,7 @@ class ERCOT(BaseISOClient):
             # Return empty DataFrame with correct columns if we have fields
             if fields:
                 column_names = [
-                    f.get("label", f.get("name", str(i)))
-                    for i, f in enumerate(fields)
+                    f.get("label", f.get("name", str(i))) for i, f in enumerate(fields)
                 ]
                 return pd.DataFrame(columns=column_names)
             return pd.DataFrame()
@@ -712,9 +697,7 @@ class ERCOT(BaseISOClient):
             column_mapping = {}
             for i, field_info in enumerate(fields):
                 # Use label if available, otherwise fall back to name
-                label = (
-                    field_info.get("label") or field_info.get("name") or str(i)
-                )
+                label = field_info.get("label") or field_info.get("name") or str(i)
                 column_mapping[i] = label
 
             df.rename(columns=column_mapping, inplace=True)
@@ -743,9 +726,7 @@ class ERCOT(BaseISOClient):
 
             if isinstance(value, dict):
                 # Flatten nested dictionaries
-                flattened.update(
-                    self._flatten_dict_for_dataframe(value, new_key)
-                )
+                flattened.update(self._flatten_dict_for_dataframe(value, new_key))
             elif isinstance(value, list):
                 # Convert lists to string representation or count
                 if len(value) == 0:
@@ -760,9 +741,7 @@ class ERCOT(BaseISOClient):
                         )
                     else:
                         # For multiple items, just store as JSON string
-                        flattened[new_key] = str(value)[
-                            :200
-                        ]  # Truncate long strings
+                        flattened[new_key] = str(value)[:200]  # Truncate long strings
                 else:
                     # Simple list, join as string
                     flattened[new_key] = ", ".join(str(v) for v in value[:10])
@@ -800,10 +779,7 @@ class ERCOT(BaseISOClient):
         # Check additional_properties (for Product model objects)
         elif "additional_properties" in response:
             additional = response["additional_properties"]
-            if (
-                "_embedded" in additional
-                and "products" in additional["_embedded"]
-            ):
+            if "_embedded" in additional and "products" in additional["_embedded"]:
                 products = additional["_embedded"]["products"]
             elif "products" in additional:
                 products = additional["products"]
@@ -840,9 +816,7 @@ class ERCOT(BaseISOClient):
             "contentType",
         ]
         other_columns = [c for c in df.columns if c not in priority_columns]
-        column_order = [
-            c for c in priority_columns if c in df.columns
-        ] + other_columns
+        column_order = [c for c in priority_columns if c in df.columns] + other_columns
         df = df[column_order]
 
         return df
@@ -869,9 +843,7 @@ class ERCOT(BaseISOClient):
 
         return df
 
-    def _product_history_to_dataframe(
-        self, response: dict[str, Any]
-    ) -> pd.DataFrame:
+    def _product_history_to_dataframe(self, response: dict[str, Any]) -> pd.DataFrame:
         """Convert ProductHistory response to a pandas DataFrame.
 
         Expands archives into separate rows, one per archive.
@@ -945,9 +917,7 @@ class ERCOT(BaseISOClient):
             )
         else:
             # Fetch single page with retry
-            response = self._call_with_retry(
-                endpoint_func, endpoint_name, **kwargs
-            )
+            response = self._call_with_retry(endpoint_func, endpoint_name, **kwargs)
             data = response.get("data", {})
 
             if isinstance(data, dict):
@@ -1115,9 +1085,7 @@ class ERCOT(BaseISOClient):
             GridAPIError: If the API request fails
             GridTimeoutError: If the request times out
         """
-        response = self._call_endpoint_model(
-            get_version, "get_version", **kwargs
-        )
+        response = self._call_endpoint_model(get_version, "get_version", **kwargs)
         if as_dataframe:
             return self._model_to_dataframe(response)
         return response
@@ -1235,9 +1203,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_generation_summary_houston(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_generation_summary_houston(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated generation summary for Houston zone.
 
         Returns:
@@ -1253,9 +1219,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_generation_summary_north(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_generation_summary_north(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated generation summary for North zone.
 
         Returns:
@@ -1271,9 +1235,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_generation_summary_south(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_generation_summary_south(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated generation summary for South zone.
 
         Returns:
@@ -1289,9 +1251,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_generation_summary_west(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_generation_summary_west(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated generation summary for West zone.
 
         Returns:
@@ -1323,9 +1283,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_load_summary_houston(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_load_summary_houston(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated load summary for Houston zone.
 
         Returns:
@@ -1405,9 +1363,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_outage_schedule_houston(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_outage_schedule_houston(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated outage schedule for Houston zone.
 
         Returns:
@@ -1423,9 +1379,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_outage_schedule_north(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_outage_schedule_north(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated outage schedule for North zone.
 
         Returns:
@@ -1441,9 +1395,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_outage_schedule_south(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_outage_schedule_south(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated outage schedule for South zone.
 
         Returns:
@@ -1459,9 +1411,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_aggregated_outage_schedule_west(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_aggregated_outage_schedule_west(self, **kwargs: Any) -> pd.DataFrame:
         """Get aggregated outage schedule for West zone.
 
         Returns:
@@ -2345,9 +2295,7 @@ class ERCOT(BaseISOClient):
             GridAPIError: If the API request fails
             GridTimeoutError: If the request times out
         """
-        return self._call_endpoint(
-            dam_shadow_prices, "get_dam_shadow_prices", **kwargs
-        )
+        return self._call_endpoint(dam_shadow_prices, "get_dam_shadow_prices", **kwargs)
 
     def get_dam_as_plan(self, **kwargs: Any) -> pd.DataFrame:
         """Get day-ahead market ancillary service plan.
@@ -2371,9 +2319,7 @@ class ERCOT(BaseISOClient):
             GridAPIError: If the API request fails
             GridTimeoutError: If the request times out
         """
-        return self._call_endpoint(
-            dam_system_lambda, "get_dam_system_lambda", **kwargs
-        )
+        return self._call_endpoint(dam_system_lambda, "get_dam_system_lambda", **kwargs)
 
     def get_load_distribution_factors(self, **kwargs: Any) -> pd.DataFrame:
         """Get load distribution factors.
@@ -2553,9 +2499,7 @@ class ERCOT(BaseISOClient):
     #  np4_745_cd, np4_746_cd)
     # ============================================================================
 
-    def get_wpp_hourly_average_actual_forecast(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_wpp_hourly_average_actual_forecast(self, **kwargs: Any) -> pd.DataFrame:
         """Get wind power plant hourly average actual forecast.
 
         Returns:
@@ -2587,9 +2531,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_spp_hourly_average_actual_forecast(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_spp_hourly_average_actual_forecast(self, **kwargs: Any) -> pd.DataFrame:
         """Get solar power plant hourly average actual forecast.
 
         Returns:
@@ -2703,9 +2645,7 @@ class ERCOT(BaseISOClient):
             sced_system_lambda, "get_sced_system_lambda", **kwargs
         )
 
-    def get_actual_system_load_by_weather_zone(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_actual_system_load_by_weather_zone(self, **kwargs: Any) -> pd.DataFrame:
         """Get actual system load by weather zone.
 
         Returns:
@@ -2721,9 +2661,7 @@ class ERCOT(BaseISOClient):
             **kwargs,
         )
 
-    def get_actual_system_load_by_forecast_zone(
-        self, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_actual_system_load_by_forecast_zone(self, **kwargs: Any) -> pd.DataFrame:
         """Get actual system load by forecast zone.
 
         Returns:
@@ -2785,9 +2723,7 @@ class ERCOT(BaseISOClient):
             GridAPIError: If the API request fails
             GridTimeoutError: If the request times out
         """
-        return self._call_endpoint(
-            lmp_node_zone_hub, "get_lmp_node_zone_hub", **kwargs
-        )
+        return self._call_endpoint(lmp_node_zone_hub, "get_lmp_node_zone_hub", **kwargs)
 
     def get_shadow_prices_bound_transmission_constraint(
         self, **kwargs: Any
@@ -2817,9 +2753,7 @@ class ERCOT(BaseISOClient):
             GridAPIError: If the API request fails
             GridTimeoutError: If the request times out
         """
-        return self._call_endpoint(
-            spp_node_zone_hub, "get_spp_node_zone_hub", **kwargs
-        )
+        return self._call_endpoint(spp_node_zone_hub, "get_spp_node_zone_hub", **kwargs)
 
     def get_rtd_lmp_node_zone_hub(self, **kwargs: Any) -> pd.DataFrame:
         """Get data from np6_970_cd endpoint.
@@ -2969,10 +2903,7 @@ class ERCOT(BaseISOClient):
 
             if exclude_mode and not allowed:
                 # Only RESOURCE_NODE requested - exclude zones and hubs
-                df = df[
-                    ~df[loc_col].isin(LOAD_ZONES)
-                    & ~df[loc_col].isin(TRADING_HUBS)
-                ]
+                df = df[~df[loc_col].isin(LOAD_ZONES) & ~df[loc_col].isin(TRADING_HUBS)]
             elif allowed:
                 df = df[df[loc_col].isin(allowed)]
 
@@ -3044,11 +2975,7 @@ class ERCOT(BaseISOClient):
         tz = ERCOT_TIMEZONE
 
         # Case 1: Date + Hour + Interval (15-minute real-time data)
-        if (
-            "Date" in df.columns
-            and "Hour" in df.columns
-            and "Interval" in df.columns
-        ):
+        if "Date" in df.columns and "Hour" in df.columns and "Interval" in df.columns:
             # Hour 1, Interval 1 = 00:00-00:15
             # Hour is 1-24, Interval is 1-4
             dates = pd.to_datetime(df["Date"])
@@ -3121,9 +3048,7 @@ class ERCOT(BaseISOClient):
 
         # Build rename dict for columns that exist in the DataFrame
         rename_map = {
-            col: COLUMN_MAPPINGS[col]
-            for col in df.columns
-            if col in COLUMN_MAPPINGS
+            col: COLUMN_MAPPINGS[col] for col in df.columns if col in COLUMN_MAPPINGS
         }
 
         if rename_map:
@@ -3559,9 +3484,7 @@ class ERCOT(BaseISOClient):
                     posted_datetime_to=format_api_date(end_ts),
                 )
 
-        df = self._filter_by_date(
-            df, start_ts, end_ts, date_column="Posted Datetime"
-        )
+        df = self._filter_by_date(df, start_ts, end_ts, date_column="Posted Datetime")
         return self._standardize_columns(df)
 
     def get_solar_forecast(
@@ -3607,9 +3530,7 @@ class ERCOT(BaseISOClient):
                     posted_datetime_to=format_api_date(end_ts),
                 )
 
-        df = self._filter_by_date(
-            df, start_ts, end_ts, date_column="Posted Datetime"
-        )
+        df = self._filter_by_date(df, start_ts, end_ts, date_column="Posted Datetime")
         return self._standardize_columns(df)
 
     # ============================================================================
