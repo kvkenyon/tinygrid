@@ -7,12 +7,30 @@ authors = [
 description = "A unified Python SDK for accessing grid data from all major US Independent System Operators (ISOs)"
 requires-python = ">=3.10"
 readme = "README.md"
+license = {text = "MIT"}
+keywords = ["ercot", "iso", "electricity", "grid", "energy", "api", "sdk"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "pyercot",
     "python-dotenv>=1.0.0",
     "tenacity>=8.0.0",
     "pandas>=2.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/kvkenyon/tinygrid"
+Repository = "https://github.com/kvkenyon/tinygrid"
+Issues = "https://github.com/kvkenyon/tinygrid/issues"
 
 [project.optional-dependencies]
 dev = [
