@@ -18,7 +18,7 @@ test-func func:
 
 # Run tests with coverage report
 test-coverage:
-    uv run pytest --cov=tinygrid
+    uv run pytest --cov=tinygrid --cov-report=xml --cov-report=term-missing
 
 # Lint code
 lint:
