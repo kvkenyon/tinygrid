@@ -21,6 +21,7 @@ else:
         def __str__(self):
             return self._value_
 
+
 # Timezone constants
 ERCOT_TIMEZONE = "US/Central"
 
