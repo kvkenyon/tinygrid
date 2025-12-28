@@ -1,6 +1,25 @@
 """ERCOT-specific constants, enums, and mappings."""
 
-from enum import StrEnum
+import sys
+from enum import Enum
+
+# StrEnum is only available in Python 3.11+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    # Backport for Python 3.10
+    class StrEnum(str, Enum):
+        """String enum for Python 3.10 compatibility."""
+
+        def __new__(cls, value):
+            if not isinstance(value, str):
+                raise TypeError(f"{value!r} is not a string")
+            obj = str.__new__(cls, value)
+            obj._value_ = value
+            return obj
+
+        def __str__(self):
+            return self._value_
 
 # Timezone constants
 ERCOT_TIMEZONE = "US/Central"
