@@ -6,6 +6,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Tiny Grid is a Python SDK for accessing electricity grid data from US Independent System Operators (ISOs). Currently supports 100+ ERCOT endpoints with plans to support other ISOs (CAISO, PJM, NYISO, ISO-NE, MISO, SPP).
 
+## ERCOT Developer Resources
+
+- **Developer Portal**: https://developer.ercot.com
+- **API Explorer**: https://apiexplorer.ercot.com (register for subscription key)
+- **OpenAPI Specs**: https://github.com/ercot/api-specs
+- **API Base URL**: https://api.ercot.com/api/public-reports
+
+## ERCOT API Data Availability (Important Limitations)
+
+1. **API Data Start Date**: December 11, 2023
+   - The REST API only contains data from this date forward
+   - For earlier data, use MIS document downloads or historical archives
+   - Historical archives extend 7+ years back
+
+2. **Data Delay**: Approximately 1 hour
+   - Real-time data is NOT truly real-time
+   - There is ~1 hour delay from actual grid operations to API availability
+
+3. **Geographic Restriction**: US IP addresses only
+   - API blocks requests from non-US IP addresses
+   - Users outside the US need a VPN or US-based proxy
+
+4. **Rate Limit**: 30 requests per minute
+   - Exceeding this limit results in HTTP 429 errors
+   - SDK includes built-in rate limiter (enabled by default)
+
+5. **Bulk Download Limit**: 1,000 documents per request
+   - Archive bulk downloads limited to 1,000 files per POST request
+
 ## Architecture
 
 The project follows a three-layer architecture:
@@ -95,6 +124,7 @@ uv run pyright
 The `ERCOT` class is the main entry point. It wraps pyercot's generated client with:
 - Automatic token management via `ERCOTAuth`
 - Retry logic with exponential backoff (configurable via `max_retries`)
+- Rate limiting (30 requests/minute, configurable via `rate_limit_enabled` and `requests_per_minute`)
 - Context manager support for resource cleanup
 - Pagination handling (page_size defaults to 10000)
 
@@ -108,6 +138,9 @@ auth = ERCOTAuth(ERCOTAuthConfig(
     subscription_key="key"
 ))
 ercot = ERCOT(auth=auth, max_retries=3)
+
+# Disable rate limiting for testing (not recommended for production)
+ercot = ERCOT(auth=auth, rate_limit_enabled=False)
 ```
 
 ### Data Fetching Patterns

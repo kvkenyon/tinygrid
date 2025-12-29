@@ -32,6 +32,51 @@ HISTORICAL_THRESHOLD_DAYS = 90
 PUBLIC_API_BASE_URL = "https://api.ercot.com/api/public-reports"
 ESR_API_BASE_URL = "https://api.ercot.com/api/public-data"
 
+# Developer resources
+DEVELOPER_PORTAL_URL = "https://developer.ercot.com"
+API_EXPLORER_URL = "https://apiexplorer.ercot.com"
+OPENAPI_SPECS_URL = "https://github.com/ercot/api-specs"
+
+# ============================================================================
+# API Data Availability - Important Limitations
+# ============================================================================
+#
+# The ERCOT Public API has the following key limitations that users should
+# be aware of when building applications:
+#
+# 1. API DATA START DATE: December 11, 2023
+#    - The REST API only contains data from this date forward
+#    - For earlier data, use MIS document downloads or the archive API
+#    - Historical archives extend 7+ years back
+#
+# 2. DATA DELAY: Approximately 1 hour
+#    - Real-time data is NOT truly real-time
+#    - There is approximately a 1-hour delay from actual grid operations
+#      to data availability in the API
+#
+# 3. GEOGRAPHIC RESTRICTION: US IP addresses only
+#    - The API blocks requests from non-US IP addresses
+#    - Users outside the US will need a VPN or US-based proxy
+#
+# 4. RATE LIMIT: 30 requests per minute
+#    - Exceeding this limit results in HTTP 429 errors
+#    - Use the built-in rate limiter (enabled by default)
+#
+# 5. FILE LIMIT: 1,000 documents per bulk download
+#    - When using archive bulk downloads, max 1,000 files per request
+
+# Date when ERCOT's Public API became available
+API_LAUNCH_DATE = "2023-12-11"
+
+# Approximate delay (in minutes) from real-time to API availability
+API_DATA_DELAY_MINUTES = 60
+
+# Maximum documents per bulk archive download
+MAX_BULK_DOWNLOAD_FILES = 1000
+
+# Rate limit (requests per minute)
+API_RATE_LIMIT = 30
+
 
 class Market(StrEnum):
     """ERCOT market types for price data."""
@@ -145,13 +190,21 @@ EMIL_IDS = {
     "np4-188-cd": "np4-188-cd",  # DAM AS MCPC prices
     "np4-33-cd": "np4-33-cd",  # DAM AS plan
     # Forecasts
-    "np4-732-cd": "np4-732-cd",  # Wind forecast
-    "np4-742-cd": "np4-742-cd",  # Wind forecast geo
-    "np4-737-cd": "np4-737-cd",  # Solar forecast
-    "np4-745-cd": "np4-745-cd",  # Solar forecast geo
+    "np4-732-cd": "np4-732-cd",  # Wind forecast hourly
+    "np4-733-cd": "np4-733-cd",  # Wind 5-minute averaged
+    "np4-742-cd": "np4-742-cd",  # Wind forecast geo hourly
+    "np4-743-cd": "np4-743-cd",  # Wind 5-minute geo
+    "np4-737-cd": "np4-737-cd",  # Solar forecast hourly
+    "np4-738-cd": "np4-738-cd",  # Solar 5-minute averaged
+    "np4-745-cd": "np4-745-cd",  # Solar forecast geo hourly
+    "np4-746-cd": "np4-746-cd",  # Solar 5-minute geo
     # Load
     "np6-345-cd": "np6-345-cd",  # Load by weather zone
     "np6-346-cd": "np6-346-cd",  # Load by forecast zone
+    # System-wide / Transmission
+    "np6-625-cd": "np6-625-cd",  # Total ERCOT generation
+    "np6-626-cd": "np6-626-cd",  # DC tie flows
+    "np6-235-cd": "np6-235-cd",  # System-wide actuals
 }
 
 # Column name mappings for standardization (raw API name -> user-friendly name)

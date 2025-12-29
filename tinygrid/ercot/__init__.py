@@ -156,9 +156,17 @@ from ..constants.ercot import (
 from .api import ERCOTAPIMixin
 from .archive import ERCOTArchive
 from .client import ERCOTBase
-from .dashboard import ERCOTDashboardMixin, GridCondition, GridStatus
+from .dashboard import (
+    ERCOTDashboardMixin,
+    FuelMixEntry,
+    GridCondition,
+    GridStatus,
+    RenewableStatus,
+)
 from .documents import REPORT_TYPE_IDS, ERCOTDocumentsMixin
+from .eia import EIAClient
 from .endpoints import ERCOTEndpointsMixin
+from .polling import ERCOTPoller, PollResult, poll_latest
 
 
 @define
@@ -209,6 +217,10 @@ class ERCOT(
         retry_max_wait: Maximum wait time between retries in seconds. Defaults to 60.0.
         page_size: Number of records per page when fetching data. Defaults to 10000.
         max_concurrent_requests: Maximum number of concurrent page requests. Defaults to 5.
+        rate_limit_enabled: Whether to enforce rate limiting. Defaults to True.
+            ERCOT's API has a limit of 30 requests per minute.
+        requests_per_minute: Maximum requests per minute when rate limiting is enabled.
+            Defaults to 30 (ERCOT's documented limit).
     """
 
     pass  # All functionality comes from mixins
@@ -223,9 +235,20 @@ __all__ = [
     "LOAD_ZONES",
     "REPORT_TYPE_IDS",
     "TRADING_HUBS",
+    # EIA integration
+    "EIAClient",
     # Archive access
     "ERCOTArchive",
+    # Polling utilities
+    "ERCOTPoller",
+    # Dashboard types
+    "FuelMixEntry",
+    "GridCondition",
+    "GridStatus",
     "LocationType",
     "Market",
+    "PollResult",
+    "RenewableStatus",
     "SettlementPointType",
+    "poll_latest",
 ]

@@ -41,6 +41,58 @@ class TestProductsHTTPRequests:
         request = route.calls.last.request
         assert request.url.path == "/api/public-reports/"
 
+
+class TestProductsResponseShapes:
+    """Regression tests for products response parsing."""
+
+    def test_products_to_dataframe_supports_hal_embedded_shape(self):
+        """HAL responses store the list under _embedded.products."""
+        ercot = ERCOT()
+        response = {
+            "_embedded": {
+                "products": [
+                    {
+                        "emilId": "np6-905-cd",
+                        "name": "SPP Node Zone Hub",
+                        "description": "Settlement Point Prices",
+                    }
+                ]
+            },
+            "_links": {"self": {"href": "/api/public-reports/"}},
+        }
+        df = ercot._products_to_dataframe(response)
+        assert not df.empty
+        assert df.loc[0, "emilId"] == "np6-905-cd"
+
+    def test_products_to_dataframe_supports_nested_additional_properties_embedded_shape(
+        self,
+    ):
+        """Some pyercot model to_dict() outputs keep HAL under additional_properties."""
+        ercot = ERCOT()
+        response = {
+            "additional_properties": {
+                "_embedded": {
+                    "products": [
+                        {
+                            "emilId": "np6-905-cd",
+                            "name": "SPP Node Zone Hub",
+                        }
+                    ]
+                }
+            }
+        }
+        df = ercot._products_to_dataframe(response)
+        assert not df.empty
+        assert df.loc[0, "emilId"] == "np6-905-cd"
+
+    def test_products_to_dataframe_supports_raw_list_shape(self):
+        """Some clients can return a raw list of product dicts."""
+        ercot = ERCOT()
+        response = [{"emilId": "np6-905-cd", "name": "SPP Node Zone Hub"}]
+        df = ercot._products_to_dataframe(response)
+        assert not df.empty
+        assert df.loc[0, "emilId"] == "np6-905-cd"
+
     @respx.mock
     def test_get_product_dispatches_correct_url_with_emil_id(self):
         """Test get_product calls the correct endpoint with emil_id in path."""
