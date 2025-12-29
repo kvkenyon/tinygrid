@@ -223,10 +223,42 @@ Standalone data transformation functions:
 - `GridRateLimitError` - Rate limited (429)
 - `GridRetryExhaustedError` - Max retries exceeded
 
+## RTC+B Support
+
+The SDK supports ERCOT's RTC+B (Real-Time Co-optimization + Batteries) changes that went live in December 2024:
+
+### New Resource Types
+
+```python
+from tinygrid import ResourceType, AncillaryServiceType
+
+# ESR (Energy Storage Resource) for batteries
+ResourceType.ESR   # "ESR"
+ResourceType.DESR  # "DESR" - Distributed ESR
+ResourceType.DGR   # "DGR" - Distributed Generation Resource
+
+# All ancillary service types
+AncillaryServiceType.REGUP   # Regulation Up
+AncillaryServiceType.REGDN   # Regulation Down
+AncillaryServiceType.NSPIN   # Non-Spinning Reserve
+AncillaryServiceType.ECRSM   # ECRS Slow (10-minute)
+AncillaryServiceType.ECRSS   # ECRS Super Slow (30-minute)
+AncillaryServiceType.RRSFFR  # RRS Fast Frequency Response
+```
+
+### Key Dates
+
+- **ESR Integration**: June 1, 2024
+- **RTC+B Go-Live**: December 4, 2024
+
+### Legacy Compatibility
+
+All existing endpoints continue to work. The REST API paths remain unchanged - only the data within responses may include new ESR-related fields.
+
 ## Tests
 
 ```bash
 pytest tests/
 ```
 
-746 tests with 95% code coverage.
+821 tests with 96% code coverage.

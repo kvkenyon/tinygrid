@@ -1,7 +1,13 @@
 """Tiny Grid - A unified Python SDK for accessing grid data from all major US ISOs"""
 
 from .auth import ERCOTAuth, ERCOTAuthConfig
-from .constants import LocationType, Market, SettlementPointType
+from .constants import (
+    AncillaryServiceType,
+    LocationType,
+    Market,
+    ResourceType,
+    SettlementPointType,
+)
 from .ercot import ERCOT, ERCOTArchive
 from .errors import (
     GridAPIError,
@@ -20,20 +26,22 @@ __version__ = "0.1.0"
 __all__ = (
     # Client
     "ERCOT",
+    # Constants/Enums
+    "AncillaryServiceType",
     # Historical
     "ERCOTArchive",
     # Auth
     "ERCOTAuth",
     "ERCOTAuthConfig",
+    # Errors
     "GridAPIError",
     "GridAuthenticationError",
-    # Errors
     "GridError",
     "GridRateLimitError",
     "GridRetryExhaustedError",
     "GridTimeoutError",
     "LocationType",
-    # Constants/Enums
     "Market",
+    "ResourceType",
     "SettlementPointType",
 )

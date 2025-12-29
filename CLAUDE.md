@@ -35,6 +35,12 @@ Tiny Grid is a Python SDK for accessing electricity grid data from US Independen
 5. **Bulk Download Limit**: 1,000 documents per request
    - Archive bulk downloads limited to 1,000 files per POST request
 
+6. **RTC+B Changes**: December 4, 2024
+   - Real-Time Co-optimization + Batteries went live
+   - ESR (Energy Storage Resource) type added for batteries
+   - Real-time AS co-optimization replaces legacy ORDC
+   - All REST API endpoints remain compatible (additive changes only)
+
 ## Architecture
 
 The project follows a three-layer architecture:

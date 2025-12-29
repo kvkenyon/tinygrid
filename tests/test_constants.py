@@ -5,13 +5,17 @@ from tinygrid.constants.ercot import (
     EMIL_IDS,
     ENDPOINT_MAPPINGS,
     ERCOT_TIMEZONE,
+    ESR_INTEGRATION_DATE,
     HISTORICAL_THRESHOLD_DAYS,
     LIVE_API_RETENTION,
     LOAD_ZONES,
     PUBLIC_API_BASE_URL,
+    RTC_B_LAUNCH_DATE,
     TRADING_HUBS,
+    AncillaryServiceType,
     LocationType,
     Market,
+    ResourceType,
     SettlementPointType,
 )
 
@@ -236,3 +240,111 @@ class TestColumnMappings:
         """Test that all column mapping values are strings."""
         for value in COLUMN_MAPPINGS.values():
             assert isinstance(value, str)
+
+
+class TestResourceTypeEnum:
+    """Test ResourceType enum (RTC+B).
+
+    RTC+B (Real-Time Co-optimization + Batteries) introduced ESR as a new
+    resource type for batteries in December 2024.
+    """
+
+    def test_resource_type_generation_values(self):
+        """Test generation resource type values."""
+        assert ResourceType.GEN == "GEN"
+        assert ResourceType.WGR == "WGR"
+        assert ResourceType.PVGR == "PVGR"
+        assert ResourceType.SMNE == "SMNE"
+
+    def test_resource_type_load_values(self):
+        """Test load resource type values."""
+        assert ResourceType.CLR == "CLR"
+        assert ResourceType.LR == "LR"
+        assert ResourceType.DSR == "DSR"
+
+    def test_resource_type_esr_values(self):
+        """Test ESR resource type values (RTC+B addition)."""
+        assert ResourceType.ESR == "ESR"
+        assert ResourceType.DESR == "DESR"
+        assert ResourceType.DGR == "DGR"
+
+    def test_resource_type_is_string(self):
+        """Test that ResourceType enum values are strings."""
+        assert isinstance(ResourceType.ESR, str)
+        assert isinstance(ResourceType.GEN, str)
+
+    def test_resource_type_str_representation(self):
+        """Test string representation of ResourceType enum."""
+        assert str(ResourceType.ESR) == "ESR"
+        assert str(ResourceType.GEN) == "GEN"
+
+
+class TestAncillaryServiceTypeEnum:
+    """Test AncillaryServiceType enum.
+
+    RTC+B modified how ancillary services are procured in real-time with
+    co-optimization of energy and AS.
+    """
+
+    def test_as_type_regulation_values(self):
+        """Test regulation service type values."""
+        assert AncillaryServiceType.REGUP == "REGUP"
+        assert AncillaryServiceType.REGDN == "REGDN"
+
+    def test_as_type_rrs_values(self):
+        """Test responsive reserve service type values."""
+        assert AncillaryServiceType.RRSPFR == "RRSPFR"
+        assert AncillaryServiceType.RRSFFR == "RRSFFR"
+        assert AncillaryServiceType.RRSUFR == "RRSUFR"
+
+    def test_as_type_nspin_values(self):
+        """Test non-spinning reserve type values."""
+        assert AncillaryServiceType.NSPIN == "NSPIN"
+        assert AncillaryServiceType.NSPNM == "NSPNM"
+        assert AncillaryServiceType.ONNS == "ONNS"
+        assert AncillaryServiceType.OFFNS == "OFFNS"
+
+    def test_as_type_ecrs_values(self):
+        """Test ECRS type values."""
+        assert AncillaryServiceType.ECRSM == "ECRSM"
+        assert AncillaryServiceType.ECRSS == "ECRSS"
+
+    def test_as_type_is_string(self):
+        """Test that AncillaryServiceType enum values are strings."""
+        assert isinstance(AncillaryServiceType.REGUP, str)
+        assert isinstance(AncillaryServiceType.NSPIN, str)
+
+    def test_as_type_str_representation(self):
+        """Test string representation of AncillaryServiceType enum."""
+        assert str(AncillaryServiceType.REGUP) == "REGUP"
+        assert str(AncillaryServiceType.ECRSM) == "ECRSM"
+
+
+class TestRTCBConstants:
+    """Test RTC+B (Real-Time Co-optimization + Batteries) constants."""
+
+    def test_rtc_b_launch_date(self):
+        """Test RTC+B launch date constant."""
+        assert RTC_B_LAUNCH_DATE == "2024-12-04"
+        assert isinstance(RTC_B_LAUNCH_DATE, str)
+
+    def test_esr_integration_date(self):
+        """Test ESR integration date constant."""
+        assert ESR_INTEGRATION_DATE == "2024-06-01"
+        assert isinstance(ESR_INTEGRATION_DATE, str)
+
+    def test_dates_are_valid_iso_format(self):
+        """Test that RTC+B dates are valid ISO format."""
+        import datetime
+
+        # Should not raise exception
+        datetime.date.fromisoformat(RTC_B_LAUNCH_DATE)
+        datetime.date.fromisoformat(ESR_INTEGRATION_DATE)
+
+    def test_esr_integration_before_rtc_b(self):
+        """Test that ESR integration date is before RTC+B launch."""
+        import datetime
+
+        esr_date = datetime.date.fromisoformat(ESR_INTEGRATION_DATE)
+        rtc_b_date = datetime.date.fromisoformat(RTC_B_LAUNCH_DATE)
+        assert esr_date < rtc_b_date
