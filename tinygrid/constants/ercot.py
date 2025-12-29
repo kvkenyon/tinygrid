@@ -77,6 +77,43 @@ MAX_BULK_DOWNLOAD_FILES = 1000
 # Rate limit (requests per minute)
 API_RATE_LIMIT = 30
 
+# ============================================================================
+# RTC+B (Real-Time Co-optimization + Batteries) Changes
+# ============================================================================
+#
+# RTC+B went live in December 2024 and includes:
+#
+# 1. ESR (Energy Storage Resource) Integration
+#    - Batteries can now participate in energy and AS markets
+#    - New resource type: ESR
+#    - Bidirectional dispatch (charge/discharge)
+#    - State of Charge (SOC) constraints
+#
+# 2. Real-Time AS Co-optimization
+#    - AS is now procured in real-time alongside energy
+#    - New price signals: RT SCED Price Adders, RT 15-min Price Adders
+#    - Replaced legacy ORDC-based price adders
+#
+# 3. New Data Fields
+#    - ESR-specific capacity and award columns in disclosure reports
+#    - New HDL/LDL fields for ESR base point adjustments
+#    - New MCPC fields for RT AS clearing prices
+#
+# Legacy Endpoint Support:
+# - All existing REST API endpoints continue to work
+# - Data returned may include new ESR-related columns
+# - SASM (Supplemental AS Market) fields deprecated in EWS
+#
+# For more information:
+# - ERCOT Technical Reference: https://www.ercot.com/mktrules/guides
+# - API Specs: https://github.com/ercot/api-specs
+
+# Date when RTC+B went live
+RTC_B_LAUNCH_DATE = "2024-12-04"
+
+# Date when ESR integration was enabled
+ESR_INTEGRATION_DATE = "2024-06-01"
+
 
 class Market(StrEnum):
     """ERCOT market types for price data."""
@@ -101,6 +138,58 @@ class SettlementPointType(StrEnum):
     LZ = "LZ"  # Load Zone (LZ_HOUSTON, LZ_NORTH, etc.)
     HB = "HB"  # Trading Hub (HB_HOUSTON, HB_NORTH, etc.)
     RN = "RN"  # Resource Node
+
+
+class ResourceType(StrEnum):
+    """ERCOT resource types.
+
+    RTC+B (Real-Time Co-optimization + Batteries) introduced ESR as a new
+    resource type in December 2024. ESRs can provide both energy and
+    ancillary services with bidirectional dispatch (charge/discharge).
+    """
+
+    # Generation Resources
+    GEN = "GEN"  # Generation Resource
+    WGR = "WGR"  # Wind Generation Resource
+    PVGR = "PVGR"  # Photovoltaic (Solar) Generation Resource
+    SMNE = "SMNE"  # Small Non-Exempt Generation Resource
+
+    # Load Resources
+    CLR = "CLR"  # Controllable Load Resource
+    LR = "LR"  # Load Resource
+    DSR = "DSR"  # Demand Side Response Resource
+
+    # Energy Storage Resources (RTC+B)
+    ESR = "ESR"  # Energy Storage Resource (batteries, added in RTC+B)
+    DESR = "DESR"  # Distributed Energy Storage Resource
+    DGR = "DGR"  # Distributed Generation Resource
+
+
+class AncillaryServiceType(StrEnum):
+    """ERCOT Ancillary Service types.
+
+    RTC+B modified how these services are procured in real-time with
+    co-optimization of energy and AS. ESRs can now provide most AS types.
+    """
+
+    # Regulation Services
+    REGUP = "REGUP"  # Regulation Up
+    REGDN = "REGDN"  # Regulation Down
+
+    # Responsive Reserve Services (RRS)
+    RRSPFR = "RRSPFR"  # Responsive Reserve - Primary Frequency Response
+    RRSFFR = "RRSFFR"  # Responsive Reserve - Fast Frequency Response
+    RRSUFR = "RRSUFR"  # Responsive Reserve - Ultra-Fast Frequency Response
+
+    # Non-Spinning Reserve
+    NSPIN = "NSPIN"  # Non-Spinning Reserve (Online)
+    NSPNM = "NSPNM"  # Non-Spinning Reserve (Non-Market)
+    ONNS = "ONNS"  # Online Non-Spinning Reserve
+    OFFNS = "OFFNS"  # Offline Non-Spinning Reserve
+
+    # Emergency Contingency Reserve Service (ECRS)
+    ECRSM = "ECRSM"  # ECRS - Slow (10-minute)
+    ECRSS = "ECRSS"  # ECRS - Super Slow (30-minute)
 
 
 # ERCOT Load Zones

@@ -296,6 +296,55 @@ Important limitations to be aware of:
 
 For data before December 2023, use `get_rtm_spp_historical()`, `get_dam_spp_historical()`, or the EIA integration.
 
+## RTC+B (Real-Time Co-optimization + Batteries) Support
+
+ERCOT launched RTC+B (Real-Time Co-optimization + Batteries) on December 4, 2024. This SDK fully supports both the new RTC+B changes and legacy endpoints:
+
+### What Changed with RTC+B
+
+| Change | Description |
+|--------|-------------|
+| **ESR Resource Type** | Energy Storage Resources (batteries) now participate in energy and AS markets |
+| **Real-Time AS Co-optimization** | Ancillary services are now procured in real-time alongside energy |
+| **New Price Signals** | RT SCED Price Adders, RT 15-min Price Adders replace legacy ORDC-based adders |
+| **ESR Data Fields** | New columns in disclosure reports for ESR capacity, awards, and state of charge |
+
+### Using RTC+B Data
+
+```python
+from tinygrid import ERCOT, ResourceType, AncillaryServiceType
+
+ercot = ERCOT(auth=auth)
+
+# Get ESR data from dashboard (no auth required)
+esr_data = ercot.get_energy_storage_resources()
+
+# Get ancillary service data (includes ESR participation)
+as_prices = ercot.get_as_prices(start="today")
+
+# Access resource type constants for filtering
+print(ResourceType.ESR)      # "ESR" - Energy Storage Resource
+print(ResourceType.GEN)      # "GEN" - Generation Resource
+print(ResourceType.CLR)      # "CLR" - Controllable Load Resource
+
+# Access ancillary service type constants
+print(AncillaryServiceType.REGUP)   # "REGUP" - Regulation Up
+print(AncillaryServiceType.ECRSM)   # "ECRSM" - ECRS Slow (10-minute)
+print(AncillaryServiceType.RRSFFR)  # "RRSFFR" - RRS Fast Frequency Response
+```
+
+### Legacy Endpoint Compatibility
+
+All existing REST API endpoints continue to work unchanged. The RTC+B changes are primarily:
+
+1. **Additive** - New data columns in existing endpoint responses
+2. **EWS Changes** - SOAP/XML web services have structural changes (not used by this SDK)
+3. **Deprecations** - SASM-related fields deprecated in EWS (legacy endpoints still work)
+
+**Key Dates:**
+- ESR Integration: June 1, 2024
+- RTC+B Go-Live: December 4, 2024
+
 ## Available ERCOT Endpoints
 
 Direct access to 100+ ERCOT endpoints organized by category:
@@ -315,7 +364,14 @@ All methods accept `**kwargs` for additional API parameters like `size`, `page`,
 ## Constants and Enums
 
 ```python
-from tinygrid.constants import Market, LocationType, LOAD_ZONES, TRADING_HUBS
+from tinygrid.constants import (
+    Market, 
+    LocationType, 
+    ResourceType,           # New: RTC+B resource types
+    AncillaryServiceType,   # New: AS types
+    LOAD_ZONES, 
+    TRADING_HUBS,
+)
 
 # Market types
 Market.REAL_TIME_SCED         # Real-time SCED (5-minute)
@@ -327,6 +383,20 @@ LocationType.LOAD_ZONE        # Load zones (LZ_*)
 LocationType.TRADING_HUB      # Trading hubs (HB_*)
 LocationType.RESOURCE_NODE    # Resource nodes
 LocationType.ELECTRICAL_BUS   # Electrical buses
+
+# Resource types (includes RTC+B ESR)
+ResourceType.GEN              # Generation Resource
+ResourceType.ESR              # Energy Storage Resource (batteries)
+ResourceType.CLR              # Controllable Load Resource
+ResourceType.WGR              # Wind Generation Resource
+ResourceType.PVGR             # Solar (Photovoltaic) Generation Resource
+
+# Ancillary service types
+AncillaryServiceType.REGUP    # Regulation Up
+AncillaryServiceType.REGDN    # Regulation Down
+AncillaryServiceType.NSPIN    # Non-Spinning Reserve
+AncillaryServiceType.ECRSM    # Emergency Contingency Reserve - Slow
+AncillaryServiceType.RRSFFR   # Responsive Reserve - Fast Frequency Response
 
 # Pre-defined location lists
 LOAD_ZONES = ["LZ_HOUSTON", "LZ_NORTH", "LZ_SOUTH", "LZ_WEST", ...]
