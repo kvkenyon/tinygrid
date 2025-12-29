@@ -7,6 +7,7 @@ import {
   type SPPParams,
   type LMPParams,
   type LMPCombinedParams,
+  type PriceGridParams,
   type LoadParams,
   type LoadForecastParams,
   type WindSolarParams,
@@ -64,7 +65,8 @@ export function useSPP(params?: SPPParams) {
   return useQuery({
     queryKey: ["spp", params],
     queryFn: () => pricesAPI.getSPP(params),
-    staleTime: 60000,
+    staleTime: 30000,
+    refetchInterval: 60000, // Auto-refresh every minute
   });
 }
 
@@ -72,7 +74,8 @@ export function useLMP(params?: LMPParams) {
   return useQuery({
     queryKey: ["lmp", params],
     queryFn: () => pricesAPI.getLMP(params),
-    staleTime: 60000,
+    staleTime: 30000,
+    refetchInterval: 60000, // Auto-refresh every minute
   });
 }
 
@@ -80,7 +83,7 @@ export function useDailyPrices() {
   return useQuery({
     queryKey: ["daily-prices"],
     queryFn: pricesAPI.getDailyPrices,
-    staleTime: 60000,
+    staleTime: 300000, // 5 minutes - daily prices don't change often
   });
 }
 
@@ -88,8 +91,27 @@ export function useLMPCombined(params?: LMPCombinedParams) {
   return useQuery({
     queryKey: ["lmp-combined", params],
     queryFn: () => pricesAPI.getLMPCombined(params),
-    staleTime: 30000,  // Refresh more often for real-time data
-    refetchInterval: 60000,  // Auto-refresh every minute
+    staleTime: 30000,
+    refetchInterval: 60000, // Auto-refresh every minute
+  });
+}
+
+// Grid hooks for mini-chart display
+export function useLMPGrid(params?: PriceGridParams) {
+  return useQuery({
+    queryKey: ["lmp-grid", params],
+    queryFn: () => pricesAPI.getLMPGrid(params),
+    staleTime: 30000,
+    refetchInterval: 60000, // Auto-refresh every minute
+  });
+}
+
+export function useSPPGrid(params?: PriceGridParams) {
+  return useQuery({
+    queryKey: ["spp-grid", params],
+    queryFn: () => pricesAPI.getSPPGrid(params),
+    staleTime: 30000,
+    refetchInterval: 60000, // Auto-refresh every minute
   });
 }
 
@@ -99,6 +121,7 @@ export function useLoad(params?: LoadParams) {
     queryKey: ["load", params],
     queryFn: () => forecastsAPI.getLoad(params),
     staleTime: 60000,
+    refetchInterval: 120000, // Auto-refresh every 2 minutes
   });
 }
 
@@ -107,6 +130,7 @@ export function useLoadForecast(params?: LoadForecastParams) {
     queryKey: ["load-forecast", params],
     queryFn: () => forecastsAPI.getLoadForecast(params),
     staleTime: 60000,
+    refetchInterval: 120000, // Auto-refresh every 2 minutes
   });
 }
 
@@ -115,6 +139,7 @@ export function useWindForecast(params?: WindSolarParams) {
     queryKey: ["wind-forecast", params],
     queryFn: () => forecastsAPI.getWindForecast(params),
     staleTime: 60000,
+    refetchInterval: 120000, // Auto-refresh every 2 minutes
   });
 }
 
@@ -123,6 +148,7 @@ export function useSolarForecast(params?: WindSolarParams) {
     queryKey: ["solar-forecast", params],
     queryFn: () => forecastsAPI.getSolarForecast(params),
     staleTime: 60000,
+    refetchInterval: 120000, // Auto-refresh every 2 minutes
   });
 }
 

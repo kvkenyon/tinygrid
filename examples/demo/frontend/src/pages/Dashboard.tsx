@@ -19,7 +19,9 @@ import {
   CardContent,
   Loading,
 } from "../components";
+import { useTheme } from "../context/ThemeContext";
 import { formatNumber } from "../lib/utils";
+import { getChartThemeColors } from "../lib/chartColors";
 import { Zap, Activity, TrendingUp, RefreshCw, DollarSign, Clock } from "lucide-react";
 
 const TIMEZONE = "America/Chicago";
@@ -191,6 +193,8 @@ const FUEL_COLORS: Record<string, string> = {
 
 // Stacked Generation Mix Chart - time series like GridStatus
 function GenerationMixChart() {
+  const { theme } = useTheme();
+  const themeColors = getChartThemeColors(theme);
   const { data: loadData, isLoading: loadLoading } = useLoadForecast({ start: "today", by: "weather_zone" });
   const { data: windData, isLoading: windLoading } = useWindForecast({ start: "today", resolution: "hourly" });
   const { data: solarData, isLoading: solarLoading } = useSolarForecast({ start: "today", resolution: "hourly" });
@@ -290,33 +294,35 @@ function GenerationMixChart() {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
-              <XAxis 
-                dataKey="hour" 
-                tick={{ fontSize: 11 }}
+              <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} vertical={false} />
+              <XAxis
+                dataKey="hour"
+                tick={{ fontSize: 11, fill: themeColors.axisText }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `${v}h`}
               />
               <YAxis
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: themeColors.axisText }}
                 tickFormatter={(v) => `${v.toFixed(0)}`}
                 axisLine={false}
                 tickLine={false}
                 width={35}
-                label={{ value: 'GW', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+                label={{ value: "GW", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: themeColors.axisText } }}
               />
               <Tooltip
                 formatter={(value) => [`${Number(value ?? 0).toFixed(2)} GW`]}
                 labelFormatter={(label) => `${label}:00 CT`}
-                contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
-                labelStyle={{ color: 'oklch(var(--bc))' }}
-                itemStyle={{ color: 'oklch(var(--bc))' }}
+                contentStyle={{
+                  backgroundColor: themeColors.tooltipBg,
+                  border: `1px solid ${themeColors.tooltipBorder}`,
+                  borderRadius: "0.5rem",
+                  color: themeColors.tooltipText,
+                }}
+                labelStyle={{ color: themeColors.tooltipText }}
+                itemStyle={{ color: themeColors.tooltipText }}
               />
-              <Legend 
-                wrapperStyle={{ fontSize: 11 }}
-                formatter={(value) => <span style={{ color: 'oklch(var(--bc))' }}>{value}</span>}
-              />
+              <Legend wrapperStyle={{ fontSize: 11, color: themeColors.legendText }} />
               <Area type="monotone" dataKey="nuclear" stackId="1" stroke={FUEL_COLORS.nuclear} fill={FUEL_COLORS.nuclear} name="Nuclear" />
               <Area type="monotone" dataKey="coal" stackId="1" stroke={FUEL_COLORS.coal} fill={FUEL_COLORS.coal} name="Coal" />
               <Area type="monotone" dataKey="gas" stackId="1" stroke={FUEL_COLORS.gas} fill={FUEL_COLORS.gas} name="Natural Gas" />
@@ -348,10 +354,12 @@ type LocationType = "load_zone" | "trading_hub" | "dc_tie";
 
 // Combined DA + RT LMP Price Chart like GridStatus
 function LMPPriceChart() {
+  const { theme } = useTheme();
+  const themeColors = getChartThemeColors(theme);
   const [locationType, setLocationType] = useState<LocationType>("load_zone");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
 
-  const { data: lmpData, isLoading, error, refetch } = useLMPCombined({ 
+  const { data: lmpData, isLoading, error, refetch } = useLMPCombined({
     location_type: locationType,
     location: selectedLocation || undefined,
   });
@@ -475,10 +483,10 @@ function LMPPriceChart() {
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
-                <XAxis 
-                  dataKey="hour" 
-                  tick={{ fontSize: 11 }}
+                <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} vertical={false} />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fontSize: 11, fill: themeColors.axisText }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => {
@@ -489,12 +497,12 @@ function LMPPriceChart() {
                   }}
                 />
                 <YAxis
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, fill: themeColors.axisText }}
                   tickFormatter={(v) => `$${v}`}
                   axisLine={false}
                   tickLine={false}
                   width={45}
-                  domain={['auto', 'auto']}
+                  domain={["auto", "auto"]}
                 />
                 <Tooltip
                   formatter={(value, name) => {
@@ -507,15 +515,20 @@ function LMPPriceChart() {
                     const h = hour % 12 || 12;
                     return `${h}:00 ${ampm} CT`;
                   }}
-                  contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
-                  labelStyle={{ color: 'oklch(var(--bc))' }}
-                  itemStyle={{ color: 'oklch(var(--bc))' }}
+                  contentStyle={{
+                    backgroundColor: themeColors.tooltipBg,
+                    border: `1px solid ${themeColors.tooltipBorder}`,
+                    borderRadius: "0.5rem",
+                    color: themeColors.tooltipText,
+                  }}
+                  labelStyle={{ color: themeColors.tooltipText }}
+                  itemStyle={{ color: themeColors.tooltipText }}
                 />
-                <Legend 
-                  wrapperStyle={{ fontSize: 11 }}
+                <Legend
+                  wrapperStyle={{ fontSize: 11, color: themeColors.legendText }}
                   formatter={(value) => {
                     const label = value === "da" ? "Day Ahead" : "Real Time";
-                    return <span style={{ color: 'oklch(var(--bc))' }}>{label}</span>;
+                    return <span style={{ color: themeColors.legendText }}>{label}</span>;
                   }}
                 />
                 <Line

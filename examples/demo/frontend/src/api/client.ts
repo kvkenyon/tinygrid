@@ -70,6 +70,32 @@ export interface LMPCombinedResponse {
   count: number;
 }
 
+// Grid endpoints for mini-chart display
+export interface PriceGridParams {
+  start?: string;
+  end?: string;
+  market?: "real_time_15_min" | "day_ahead_hourly";
+}
+
+export interface LocationPriceData {
+  location: string;
+  location_type: "load_zone" | "trading_hub" | "dc_tie" | "unknown";
+  data: Array<{ time: string; price: number }>;
+  latest_price: number | null;
+  latest_time: string | null;
+  avg_price: number | null;
+  min_price: number | null;
+  max_price: number | null;
+}
+
+export interface PriceGridResponse {
+  locations: LocationPriceData[];
+  latest_update: string | null;
+  count: number;
+  start_date: string;
+  end_date: string | null;
+}
+
 export const pricesAPI = {
   getSPP: (params?: SPPParams) =>
     fetchAPI<import("./types").SPPResponse>(`${API_BASE}/spp`, params as Record<string, string>),
@@ -82,6 +108,13 @@ export const pricesAPI = {
   
   getDailyPrices: () =>
     fetchAPI<import("./types").DailyPricesResponse>(`${API_BASE}/daily-prices`),
+
+  // Grid endpoints for mini-chart display
+  getLMPGrid: (params?: PriceGridParams) =>
+    fetchAPI<PriceGridResponse>(`${API_BASE}/lmp-grid`, params as Record<string, string>),
+  
+  getSPPGrid: (params?: PriceGridParams) =>
+    fetchAPI<PriceGridResponse>(`${API_BASE}/spp-grid`, params as Record<string, string>),
 };
 
 // Forecasts endpoints

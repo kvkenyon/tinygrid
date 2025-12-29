@@ -47,14 +47,32 @@ The project follows a three-layer architecture:
 
 2. **tinygrid/** - SDK wrapper layer
    - High-level API abstraction over pyercot
-   - Core classes: `ERCOT` client, `ERCOTAuth` authentication
-   - Provides conveniences: pagination, retry logic, date range chunking, pandas DataFrames
-   - Exposes error types: `GridError`, `GridAPIError`, `GridAuthenticationError`, `GridTimeoutError`
+   - Main `ERCOT` client composed of multiple mixin classes:
+     - `ERCOTBase` (client.py): Auth, retry logic, pagination, rate limiting
+     - `ERCOTEndpointsMixin` (endpoints.py): Low-level wrappers for 100+ pyercot endpoints
+     - `ERCOTAPIMixin` (api.py): High-level unified API methods (get_spp, get_lmp, etc.)
+     - `ERCOTDashboardMixin` (dashboard.py): Public dashboard methods (no auth required)
+     - `ERCOTDocumentsMixin` (documents.py): MIS document fetching for yearly historical data
+   - Supporting classes:
+     - `ERCOTAuth`: Token-based authentication management
+     - `ERCOTArchive`: Historical data access (>90 days old)
+     - `ERCOTPoller`: Real-time polling utilities
+     - `EIAClient`: EIA API integration for pre-December 2023 data
+   - Exposes error types: `GridError`, `GridAPIError`, `GridAuthenticationError`, `GridTimeoutError`, `GridRateLimitError`, `GridRetryExhaustedError`
 
 3. **tests/** - Test suite
    - Uses pytest with respx for HTTP mocking
    - Fixtures in `conftest.py` for common test data
    - Test organization by feature (test_ercot.py, test_ercot_retry.py, test_ercot_unified.py, etc.)
+   - 746 tests with 95% coverage
+
+4. **examples/** - Usage examples
+   - `ercot_demo.ipynb`: Jupyter notebook demonstrating SDK features
+   - `demo/`: Full-stack web application showcasing TinyGrid SDK
+     - FastAPI backend with TinyGrid SDK integration
+     - React + TypeScript + Vite frontend
+     - Docker Compose for easy deployment
+     - Demonstrates dashboard, prices, forecasts, and historical data
 
 ## Development Commands
 
@@ -163,13 +181,50 @@ Located in `tinygrid/constants/ercot.py`:
 - `ERCOT_TIMEZONE` = "US/Central"
 - `HISTORICAL_THRESHOLD_DAYS` = 90 (threshold for using archive API vs. real-time API)
 
+### Dashboard Methods (No Authentication Required)
+
+`ERCOTDashboardMixin` provides access to real-time grid data from ERCOT's public dashboard JSON:
+- `get_status()`: Grid operating condition, current load, capacity, reserves
+- `get_fuel_mix()`: Generation breakdown by fuel type (coal, gas, nuclear, wind, solar, etc.)
+- `get_renewable_generation()`: Wind and solar output with forecasts
+- `get_supply_demand()`: Hourly supply and demand data
+- `get_daily_prices()`: Daily price summary
+- Located in `tinygrid/ercot/dashboard.py`
+- Returns structured Python objects (GridStatus, FuelMixEntry, RenewableStatus)
+
 ### Historical Data Access
 
-`ERCOTArchive` class provides bulk download of historical data:
+`ERCOTArchive` class provides bulk download of historical data (>90 days old):
 - Uses POST-based batch downloads (max 1000 items per batch)
 - Returns data as pandas DataFrames
 - Automatically handles date ranges with threading for concurrent downloads
-- Located in `tinygrid/historical/ercot.py`
+- Located in `tinygrid/ercot/archive.py`
+
+`ERCOTDocumentsMixin` provides access to yearly historical data from MIS documents:
+- `get_rtm_spp_historical(year)`: Full year of RTM settlement point prices
+- `get_dam_spp_historical(year)`: Full year of DAM settlement point prices
+- `get_settlement_point_mapping()`: Settlement point to bus mapping
+- Downloads and parses Excel/CSV files from ERCOT's document archive
+- Located in `tinygrid/ercot/documents.py`
+- Report type IDs available in `REPORT_TYPE_IDS` constant
+
+### Polling Utilities
+
+`ERCOTPoller` class and `poll_latest()` function for real-time data monitoring:
+- `poll_latest(client, method, interval, max_iterations)`: Generator-based polling
+- `ERCOTPoller(client, interval).poll(method, callback, max_iterations)`: Callback-based polling
+- Automatic error handling and retry logic
+- Configurable polling interval and iteration limits
+- Located in `tinygrid/ercot/polling.py`
+
+### EIA Integration
+
+`EIAClient` provides access to ERCOT data via the EIA API for data before December 2023:
+- `get_demand(start, end)`: Hourly electricity demand
+- `get_generation_by_fuel(start, end)`: Generation breakdown by fuel type
+- `get_interchange(start, end)`: Net interchange with other grids
+- Requires free API key from https://www.eia.gov/opendata/register.php
+- Located in `tinygrid/ercot/eia.py`
 
 ### Testing Patterns
 
@@ -224,11 +279,27 @@ The project uses `uv` for dependency management:
 ## Common Development Tasks
 
 **Adding a new ERCOT method:**
-1. Check pyercot has the endpoint function imported (in `tinygrid/ercot.py` imports)
-2. Add wrapper method to ERCOT class that calls the pyercot endpoint
+
+For low-level endpoint wrappers (ERCOTEndpointsMixin):
+1. Check pyercot has the endpoint function imported (in `tinygrid/ercot/__init__.py` imports)
+2. Add wrapper method to `ERCOTEndpointsMixin` in `tinygrid/ercot/endpoints.py`
 3. Handle date formatting via `format_api_date()`
 4. Return pandas DataFrame
 5. Add tests in appropriate test file
+
+For high-level unified API methods (ERCOTAPIMixin):
+1. Add method to `ERCOTAPIMixin` in `tinygrid/ercot/api.py`
+2. Use `@support_date_range()` decorator if method should handle large date ranges
+3. Route to appropriate endpoint based on market type using `ENDPOINT_MAPPINGS`
+4. Handle automatic historical routing if data age > HISTORICAL_THRESHOLD_DAYS
+5. Add tests in `tests/test_ercot_unified.py` or similar
+
+For dashboard methods (ERCOTDashboardMixin):
+1. Add method to `ERCOTDashboardMixin` in `tinygrid/ercot/dashboard.py`
+2. Define response models using attrs dataclasses
+3. Parse JSON response from ERCOT dashboard endpoint
+4. No authentication required for these methods
+5. Add tests in `tests/test_ercot_dashboard.py`
 
 **Working with dates:**
 - Use `parse_date()` for flexible input parsing
@@ -241,3 +312,45 @@ The project uses `uv` for dependency management:
 - Mock the full URL (base_url + endpoint path)
 - Create realistic pyercot Report/ReportData objects as fixtures
 - Test error cases explicitly
+
+**Working with the demo application:**
+- Backend: `cd examples/demo/backend && uvicorn main:app --reload`
+- Frontend: `cd examples/demo/frontend && npm run dev`
+- Docker: `cd examples/demo && docker compose up --build`
+- Backend uses TinyGrid SDK to serve data to React frontend
+- API docs available at http://localhost:8000/docs
+
+## Demo Web Application
+
+The `examples/demo/` directory contains a full-stack web application demonstrating TinyGrid SDK features.
+
+### Architecture
+- **Backend**: FastAPI application (`backend/main.py`) with modular routes
+  - `routes/dashboard.py`: Grid status, fuel mix, renewables
+  - `routes/prices.py`: SPP and LMP data with caching
+  - `routes/forecasts.py`: Load, wind, and solar forecasts
+  - `routes/historical.py`: Archive data access
+  - `client.py`: Shared ERCOT client instance
+- **Frontend**: React + TypeScript + Vite application
+  - Pages: Dashboard, Prices, Forecasts, Historical
+  - TanStack Query for data fetching and caching
+  - Recharts for data visualization
+  - Tailwind CSS for styling
+
+### Key Features Demonstrated
+- Dashboard methods without authentication (`get_status()`, `get_fuel_mix()`)
+- Real-time data visualization with auto-refresh
+- Data caching and background prefetching
+- Error handling with retry logic
+- Filtering and market selection
+- Historical data access (>90 days)
+
+### Running the Demo
+See `examples/demo/README.md` for detailed setup instructions. Quick start:
+```bash
+cd examples/demo
+docker compose up --build
+# Frontend: http://localhost:3000
+# API: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```

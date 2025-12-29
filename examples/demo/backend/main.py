@@ -4,6 +4,7 @@ This backend demonstrates the TinyGrid SDK's features through a REST API
 that powers a React frontend dashboard.
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -16,7 +17,7 @@ from routes import (
     historical_router,
     prices_router,
 )
-from routes.prices import prefetch_da_lmp
+from routes.prices import prefetch_all_data
 
 
 @asynccontextmanager
@@ -24,9 +25,12 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Initialize ERCOT client on startup
     initialize_client()
-    # Prefetch Day-Ahead LMP data (cached for the day)
-    prefetch_da_lmp()
+    # Prefetch all cacheable data in background thread - don't block event loop
+    # This allows the server to start accepting requests immediately
+    ref = asyncio.create_task(asyncio.to_thread(prefetch_all_data))
     yield
+    # Wait for prefetch task to complete before shutdown
+    await ref
     # Cleanup on shutdown
     cleanup_client()
 
@@ -68,7 +72,13 @@ def root() -> dict[str, Any]:
                 "/api/renewable",
                 "/api/supply-demand",
             ],
-            "prices": ["/api/spp", "/api/lmp", "/api/daily-prices"],
+            "prices": [
+                "/api/spp",
+                "/api/lmp",
+                "/api/lmp-grid",
+                "/api/spp-grid",
+                "/api/daily-prices",
+            ],
             "forecasts": [
                 "/api/load",
                 "/api/wind-forecast",

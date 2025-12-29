@@ -10,6 +10,7 @@ These methods intelligently dispatch to the appropriate data source:
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -352,6 +353,40 @@ class ERCOTAPIMixin:
                 )
 
         df = filter_by_date(df, start_ts, end_ts)
+        return standardize_columns(df)
+
+    def get_load_forecast(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+        by: str = "weather_zone",
+    ) -> pd.DataFrame:
+        """Get system load forecast.
+
+        Args:
+            start: Start date - "today", "yesterday", or ISO format
+            end: End date (defaults to start + 1 day)
+            by: Grouping - "weather_zone" or "study_area"
+
+        Returns:
+            DataFrame with load forecast data
+        """
+        start_ts, end_ts = parse_date_range(start, end)
+
+        if by == "study_area":
+            # Note: Historical routing omitted as endpoints not verified
+            df = self.get_load_forecast_by_study_area(
+                start_date=format_api_date(start_ts),
+                end_date=format_api_date(end_ts),
+            )
+        else:
+            # Note: Historical routing omitted as endpoints not verified
+            df = self.get_load_forecast_by_weather_zone(
+                start_date=format_api_date(start_ts),
+                end_date=format_api_date(end_ts),
+            )
+
+        df = filter_by_date(df, start_ts, end_ts, date_column="Oper Day")
         return standardize_columns(df)
 
     def get_load(
@@ -862,3 +897,144 @@ class ERCOTAPIMixin:
             "sced_load_resource": self.get_load_res_data_in_sced(),
             "sced_smne": smne_df,
         }
+
+    # ============================================================================
+    # Async wrappers
+    # ============================================================================
+    async def get_spp_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+        market: Market = Market.REAL_TIME_15_MIN,
+        locations: list[str] | None = None,
+        location_type: LocationType | list[LocationType] | None = None,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_spp using a thread off the event loop."""
+        return await asyncio.to_thread(
+            self.get_spp, start, end, market, locations, location_type
+        )
+
+    async def get_lmp_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+        market: Market = Market.REAL_TIME_SCED,
+        location_type: LocationType = LocationType.RESOURCE_NODE,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_lmp using a thread off the event loop."""
+        return await asyncio.to_thread(self.get_lmp, start, end, market, location_type)
+
+    async def get_as_prices_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_as_prices."""
+        return await asyncio.to_thread(self.get_as_prices, start, end)
+
+    async def get_as_plan_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_as_plan."""
+        return await asyncio.to_thread(self.get_as_plan, start, end)
+
+    async def get_shadow_prices_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_shadow_prices."""
+        return await asyncio.to_thread(self.get_shadow_prices, start, end)
+
+    async def get_load_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+        by: str = "weather_zone",
+    ) -> pd.DataFrame:
+        """Async wrapper for get_load."""
+        return await asyncio.to_thread(self.get_load, start, end, by)
+
+    async def get_wind_forecast_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+        by_region: bool = False,
+        resolution: str = "hourly",
+    ) -> pd.DataFrame:
+        """Async wrapper for get_wind_forecast."""
+        return await asyncio.to_thread(
+            self.get_wind_forecast, start, end, by_region, resolution
+        )
+
+    async def get_solar_forecast_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+        by_region: bool = False,
+        resolution: str = "hourly",
+    ) -> pd.DataFrame:
+        """Async wrapper for get_solar_forecast."""
+        return await asyncio.to_thread(
+            self.get_solar_forecast, start, end, by_region, resolution
+        )
+
+    async def get_load_forecast_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+        by: str = "weather_zone",
+    ) -> pd.DataFrame:
+        """Async wrapper for get_load_forecast."""
+        # Note: get_load_forecast is not defined in ERCOTAPIMixin but we assume it is available
+        # via other mixins or will be called on the instance.
+        # However, checking api.py, get_load_forecast isn't there.
+        # But forecasts.py calls ercot.get_load_forecast_by_weather_zone/study_area.
+        # It seems the unified method might be missing in api.py too?
+        # Let's check if get_load_forecast exists in api.py.
+        # It does not appear in the Read output of api.py.
+        # But the user plan says: "Replace ... with await ercot.get_load_forecast_async(...)".
+        # This implies I should create get_load_forecast_async AND possibly get_load_forecast if it doesn't exist?
+        # Or maybe it relies on dynamic dispatch? No.
+        # Let's add get_load_forecast to api.py as well, as a unified method.
+        return await asyncio.to_thread(self.get_load_forecast, start, end, by)
+
+    async def get_dc_tie_flows_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_dc_tie_flows."""
+        return await asyncio.to_thread(self.get_dc_tie_flows, start, end)
+
+    async def get_total_generation_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_total_generation."""
+        return await asyncio.to_thread(self.get_total_generation, start, end)
+
+    async def get_system_wide_actuals_async(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Async wrapper for get_system_wide_actuals."""
+        return await asyncio.to_thread(self.get_system_wide_actuals, start, end)
+
+    async def get_60_day_dam_disclosure_async(
+        self,
+        date: str | pd.Timestamp = "today",
+    ) -> dict[str, pd.DataFrame]:
+        """Async wrapper for get_60_day_dam_disclosure."""
+        return await asyncio.to_thread(self.get_60_day_dam_disclosure, date)
+
+    async def get_60_day_sced_disclosure_async(
+        self,
+        date: str | pd.Timestamp = "today",
+    ) -> dict[str, pd.DataFrame]:
+        """Async wrapper for get_60_day_sced_disclosure."""
+        return await asyncio.to_thread(self.get_60_day_sced_disclosure, date)

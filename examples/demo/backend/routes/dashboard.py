@@ -88,7 +88,7 @@ class SupplyDemandResponse(BaseModel):
 
 
 @router.get("/status", response_model=GridStatusResponse)
-def get_status() -> dict[str, Any]:
+async def get_status() -> dict[str, Any]:
     """Get current grid operating status.
 
     Uses authenticated API to get load data and renewable forecasts
@@ -98,13 +98,12 @@ def get_status() -> dict[str, Any]:
         ercot = get_ercot()
 
         # Get current load data - try today first, fall back to yesterday
-        load_df = ercot.get_load(start="today")
+        load_df = await ercot.get_load_async(start="today")
         if load_df.empty:
-            load_df = ercot.get_load(start="yesterday")
+            load_df = await ercot.get_load_async(start="yesterday")
 
         current_load = 0.0
         if not load_df.empty:
-            # Get the most recent load value
             current_load = safe_float(load_df["Total"].iloc[-1])
 
         # Get wind and solar forecasts for current output
@@ -112,13 +111,14 @@ def get_status() -> dict[str, Any]:
         solar_output = 0.0
 
         try:
-            wind_df = ercot.get_wind_forecast(start="today", resolution="hourly")
+            wind_df = await ercot.get_wind_forecast_async(
+                start="today", resolution="hourly"
+            )
             if wind_df.empty:
-                wind_df = ercot.get_wind_forecast(
+                wind_df = await ercot.get_wind_forecast_async(
                     start="yesterday", resolution="hourly"
                 )
             if not wind_df.empty:
-                # Use actual generation if available, otherwise use forecast
                 gen = wind_df["Generation System Wide"].iloc[-1]
                 if gen is None or (isinstance(gen, float) and math.isnan(gen)):
                     wind_output = safe_float(wind_df["STWPF System Wide"].iloc[-1])
@@ -128,13 +128,14 @@ def get_status() -> dict[str, Any]:
             pass
 
         try:
-            solar_df = ercot.get_solar_forecast(start="today", resolution="hourly")
+            solar_df = await ercot.get_solar_forecast_async(
+                start="today", resolution="hourly"
+            )
             if solar_df.empty:
-                solar_df = ercot.get_solar_forecast(
+                solar_df = await ercot.get_solar_forecast_async(
                     start="yesterday", resolution="hourly"
                 )
             if not solar_df.empty:
-                # Use actual generation if available, otherwise use forecast
                 gen = solar_df["Generation System Wide"].iloc[-1]
                 if gen is None or (isinstance(gen, float) and math.isnan(gen)):
                     solar_output = safe_float(solar_df["STPPF System Wide"].iloc[-1])
@@ -144,9 +145,9 @@ def get_status() -> dict[str, Any]:
             pass
 
         # Estimate capacity and reserves (ERCOT typical ranges)
-        capacity = max(current_load * 1.15, 80000)  # ~15% headroom typical
+        capacity = max(current_load * 1.15, 80000)
         reserves = capacity - current_load
-        peak_forecast = current_load * 1.05  # Rough estimate
+        peak_forecast = current_load * 1.05
 
         return {
             "condition": "normal",
@@ -165,7 +166,7 @@ def get_status() -> dict[str, Any]:
 
 
 @router.get("/fuel-mix-realtime")
-def get_fuel_mix_realtime() -> dict[str, Any]:
+async def get_fuel_mix_realtime() -> dict[str, Any]:
     """Get estimated fuel mix based on real wind/solar data and typical ERCOT baseload.
 
     Since ERCOT's public dashboard JSON is not reliably available, this endpoint
@@ -174,26 +175,22 @@ def get_fuel_mix_realtime() -> dict[str, Any]:
     - Typical ERCOT baseload values for nuclear (~5.1 GW) and coal (~8-10 GW)
     - Natural gas fills the remainder between load and other sources
     """
-    from datetime import datetime
-
-    import pytz
-
     try:
+        import pytz
+
         ercot = get_ercot()
-        entries = []
-        # Use Central Time for timestamp
         ct = pytz.timezone("America/Chicago")
         timestamp = datetime.now(ct).strftime("%Y-%m-%d %H:%M:%S %Z")
 
         # Get current load
         load_mw = 0.0
         try:
-            load_df = ercot.get_load_forecast_by_weather_zone(
-                start_date=datetime.now().strftime("%Y-%m-%d"),
-                end_date=datetime.now().strftime("%Y-%m-%d"),
+            # Note: get_load_forecast_by_weather_zone doesn't have an async wrapper yet
+            # We can use get_load_forecast_async which is unified
+            load_df = await ercot.get_load_forecast_async(
+                start="today", end="today", by="weather_zone"
             )
             if not load_df.empty:
-                # Get record closest to current hour
                 current_hour = datetime.now().hour
                 if len(load_df) > current_hour:
                     row = load_df.iloc[current_hour]
@@ -201,12 +198,14 @@ def get_fuel_mix_realtime() -> dict[str, Any]:
                     row = load_df.iloc[-1]
                 load_mw = safe_float(row.get("System Total", 0))
         except Exception:
-            load_mw = 55000  # Default estimate
+            load_mw = 55000
 
         # Get real wind generation
         wind_mw = 0.0
         try:
-            wind_df = ercot.get_wind_forecast(start="today", resolution="hourly")
+            wind_df = await ercot.get_wind_forecast_async(
+                start="today", resolution="hourly"
+            )
             if not wind_df.empty:
                 current_hour = datetime.now().hour
                 if len(wind_df) > current_hour:
@@ -224,7 +223,9 @@ def get_fuel_mix_realtime() -> dict[str, Any]:
         # Get real solar generation
         solar_mw = 0.0
         try:
-            solar_df = ercot.get_solar_forecast(start="today", resolution="hourly")
+            solar_df = await ercot.get_solar_forecast_async(
+                start="today", resolution="hourly"
+            )
             if not solar_df.empty:
                 current_hour = datetime.now().hour
                 if len(solar_df) > current_hour:
@@ -240,10 +241,10 @@ def get_fuel_mix_realtime() -> dict[str, Any]:
             pass
 
         # Typical ERCOT baseload values (relatively constant)
-        nuclear_mw = 5100.0  # ~5.1 GW typical nuclear baseload
-        coal_mw = 8000.0  # ~8 GW typical coal baseload
-        hydro_mw = 50.0  # Very small hydro in ERCOT
-        other_mw = 100.0  # Other sources
+        nuclear_mw = 5100.0
+        coal_mw = 8000.0
+        hydro_mw = 50.0
+        other_mw = 100.0
 
         # Calculate natural gas as remainder
         known_gen = wind_mw + solar_mw + nuclear_mw + coal_mw + hydro_mw + other_mw
@@ -263,6 +264,7 @@ def get_fuel_mix_realtime() -> dict[str, Any]:
             ("Hydro", hydro_mw),
         ]
 
+        entries = []
         for fuel_type, gen_mw in fuel_data:
             pct = (gen_mw / total * 100) if total > 0 else 0
             entries.append(
@@ -273,7 +275,6 @@ def get_fuel_mix_realtime() -> dict[str, Any]:
                 }
             )
 
-        # Sort by generation (highest first)
         entries.sort(key=lambda x: x["generation_mw"], reverse=True)
 
         return {
@@ -286,7 +287,7 @@ def get_fuel_mix_realtime() -> dict[str, Any]:
 
 
 @router.get("/fuel-mix", response_model=FuelMixResponse)
-def get_fuel_mix() -> dict[str, Any]:
+async def get_fuel_mix() -> dict[str, Any]:
     """Get current generation fuel mix.
 
     Uses wind and solar forecast data to show renewable generation.
@@ -299,9 +300,11 @@ def get_fuel_mix() -> dict[str, Any]:
 
         # Get wind generation
         try:
-            wind_df = ercot.get_wind_forecast(start="today", resolution="hourly")
+            wind_df = await ercot.get_wind_forecast_async(
+                start="today", resolution="hourly"
+            )
             if wind_df.empty:
-                wind_df = ercot.get_wind_forecast(
+                wind_df = await ercot.get_wind_forecast_async(
                     start="yesterday", resolution="hourly"
                 )
             if not wind_df.empty:
@@ -311,11 +314,7 @@ def get_fuel_mix() -> dict[str, Any]:
                 else:
                     wind_mw = safe_float(gen)
                 entries.append(
-                    {
-                        "fuel_type": "wind",
-                        "generation_mw": wind_mw,
-                        "percentage": 0,  # Will calculate after getting totals
-                    }
+                    {"fuel_type": "wind", "generation_mw": wind_mw, "percentage": 0}
                 )
                 total += wind_mw
         except Exception:
@@ -323,9 +322,11 @@ def get_fuel_mix() -> dict[str, Any]:
 
         # Get solar generation
         try:
-            solar_df = ercot.get_solar_forecast(start="today", resolution="hourly")
+            solar_df = await ercot.get_solar_forecast_async(
+                start="today", resolution="hourly"
+            )
             if solar_df.empty:
-                solar_df = ercot.get_solar_forecast(
+                solar_df = await ercot.get_solar_forecast_async(
                     start="yesterday", resolution="hourly"
                 )
             if not solar_df.empty:
@@ -335,11 +336,7 @@ def get_fuel_mix() -> dict[str, Any]:
                 else:
                     solar_mw = safe_float(gen)
                 entries.append(
-                    {
-                        "fuel_type": "solar",
-                        "generation_mw": solar_mw,
-                        "percentage": 0,
-                    }
+                    {"fuel_type": "solar", "generation_mw": solar_mw, "percentage": 0}
                 )
                 total += solar_mw
         except Exception:
@@ -347,9 +344,9 @@ def get_fuel_mix() -> dict[str, Any]:
 
         # Get total load to estimate other generation
         try:
-            load_df = ercot.get_load(start="today")
+            load_df = await ercot.get_load_async(start="today")
             if load_df.empty:
-                load_df = ercot.get_load(start="yesterday")
+                load_df = await ercot.get_load_async(start="yesterday")
             if not load_df.empty:
                 current_load = safe_float(load_df["Total"].iloc[-1])
                 other_gen = max(0, current_load - total)
@@ -380,7 +377,7 @@ def get_fuel_mix() -> dict[str, Any]:
 
 
 @router.get("/renewable", response_model=RenewableResponse)
-def get_renewable() -> dict[str, Any]:
+async def get_renewable() -> dict[str, Any]:
     """Get current renewable generation data (wind and solar).
 
     Uses authenticated wind and solar forecast endpoints.
@@ -395,9 +392,11 @@ def get_renewable() -> dict[str, Any]:
 
         # Get wind data
         try:
-            wind_df = ercot.get_wind_forecast(start="today", resolution="hourly")
+            wind_df = await ercot.get_wind_forecast_async(
+                start="today", resolution="hourly"
+            )
             if wind_df.empty:
-                wind_df = ercot.get_wind_forecast(
+                wind_df = await ercot.get_wind_forecast_async(
                     start="yesterday", resolution="hourly"
                 )
             if not wind_df.empty:
@@ -412,9 +411,11 @@ def get_renewable() -> dict[str, Any]:
 
         # Get solar data
         try:
-            solar_df = ercot.get_solar_forecast(start="today", resolution="hourly")
+            solar_df = await ercot.get_solar_forecast_async(
+                start="today", resolution="hourly"
+            )
             if solar_df.empty:
-                solar_df = ercot.get_solar_forecast(
+                solar_df = await ercot.get_solar_forecast_async(
                     start="yesterday", resolution="hourly"
                 )
             if not solar_df.empty:
@@ -428,8 +429,8 @@ def get_renewable() -> dict[str, Any]:
             pass
 
         # Typical ERCOT installed capacities (approximate)
-        wind_capacity = 40000.0  # ~40 GW installed wind
-        solar_capacity = 20000.0  # ~20 GW installed solar
+        wind_capacity = 40000.0
+        solar_capacity = 20000.0
 
         total_renewable = wind_mw + solar_mw
         total_capacity = wind_capacity + solar_capacity
@@ -454,7 +455,7 @@ def get_renewable() -> dict[str, Any]:
 
 
 @router.get("/supply-demand", response_model=SupplyDemandResponse)
-def get_supply_demand() -> dict[str, Any]:
+async def get_supply_demand() -> dict[str, Any]:
     """Get supply and demand data.
 
     Uses load forecast data to show demand trends.
@@ -462,32 +463,24 @@ def get_supply_demand() -> dict[str, Any]:
     try:
         ercot = get_ercot()
 
-        # Get load data for today, fall back to yesterday
-        load_df = ercot.get_load(start="today")
+        load_df = await ercot.get_load_async(start="today")
         if load_df.empty:
-            load_df = ercot.get_load(start="yesterday")
-
-        if load_df.empty:
-            return {
-                "data": [],
-                "timestamp": datetime.now().isoformat(),
-            }
+            load_df = await ercot.get_load_async(start="yesterday")
 
         data = []
-        for idx, row in load_df.iterrows():
-            demand = safe_float(row.get("Total", 0))
-            # Supply is typically slightly higher than demand
-            supply = demand * 1.05
-            reserves = supply - demand
-
-            data.append(
-                {
-                    "hour": idx if isinstance(idx, int) else len(data),
-                    "demand": demand,
-                    "supply": supply,
-                    "reserves": reserves,
-                }
-            )
+        if not load_df.empty:
+            for idx, row in load_df.iterrows():
+                demand = safe_float(row.get("Total", 0))
+                supply = demand * 1.05
+                reserves = supply - demand
+                data.append(
+                    {
+                        "hour": idx if isinstance(idx, int) else len(data),
+                        "demand": demand,
+                        "supply": supply,
+                        "reserves": reserves,
+                    }
+                )
 
         return {
             "data": data,

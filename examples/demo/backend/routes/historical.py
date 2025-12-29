@@ -4,8 +4,10 @@ These endpoints provide access to ERCOT historical data through the
 archive API for data older than 90 days.
 """
 
+import asyncio
 from typing import Any, Literal
 
+import pandas as pd
 from client import get_ercot
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -86,8 +88,23 @@ def get_available_endpoints() -> dict[str, Any]:
     return {"endpoints": endpoints}
 
 
+def _fetch_historical_sync(endpoint_path: str, start: str, end: str) -> pd.DataFrame:
+    """Synchronous helper to fetch historical data."""
+    ercot = get_ercot()
+    archive = ercot._get_archive()
+
+    start_ts = pd.Timestamp(start, tz="US/Central")
+    end_ts = pd.Timestamp(end, tz="US/Central")
+
+    return archive.fetch_historical(
+        endpoint=endpoint_path,
+        start=start_ts,
+        end=end_ts,
+    )
+
+
 @router.get("/historical", response_model=HistoricalResponse)
-def get_historical(
+async def get_historical(
     endpoint: Literal[
         "spp_node_zone_hub",
         "lmp_node_zone_hub",
@@ -112,28 +129,13 @@ def get_historical(
     Note: This endpoint requires ERCOT API authentication to be configured.
     """
     try:
-        import pandas as pd
-
-        ercot = get_ercot()
-
-        # Get the archive client
-        archive = ercot._get_archive()
-
-        # Convert dates to Timestamps
-        start_ts = pd.Timestamp(start, tz="US/Central")
-        end_ts = pd.Timestamp(end, tz="US/Central")
-
         # Get the endpoint path
         endpoint_path = AVAILABLE_ENDPOINTS.get(endpoint)
         if not endpoint_path:
             raise HTTPException(status_code=400, detail=f"Unknown endpoint: {endpoint}")
 
-        # Fetch historical data
-        df = archive.fetch_historical(
-            endpoint=endpoint_path,
-            start=start_ts,
-            end=end_ts,
-        )
+        # Run blocking SDK call in thread pool
+        df = await asyncio.to_thread(_fetch_historical_sync, endpoint_path, start, end)
 
         # Convert DataFrame to list of dicts
         data = df.to_dict(orient="records") if not df.empty else []

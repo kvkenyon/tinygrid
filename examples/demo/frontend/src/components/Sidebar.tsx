@@ -104,16 +104,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </button>
       </div>
 
-      {/* Status indicator */}
-      <div className="px-4 py-3 border-t border-base-300">
-        <div className="flex items-center gap-2">
-          <span className="badge badge-success badge-xs"></span>
-          {!collapsed && (
-            <span className="text-xs text-base-content/50 sidebar-text">Connected</span>
-          )}
-        </div>
-      </div>
-
       {/* Collapse toggle */}
       <button
         onClick={onToggle}

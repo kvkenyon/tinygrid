@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -21,8 +21,10 @@ import {
   Loading,
   ErrorCard,
 } from "../components";
+import { useTheme } from "../context/ThemeContext";
 import { formatMW, formatNumber } from "../lib/utils";
 import { formatTime } from "../lib/time";
+import { CHART_COLORS, FILL_COLORS, getChartThemeColors } from "../lib/chartColors";
 import { Wind, Sun, Gauge, Clock } from "lucide-react";
 
 const TIMEZONE = "America/Chicago";
@@ -43,6 +45,8 @@ type ZoneType = "weather_zone" | "forecast_zone";
 type Resolution = "hourly" | "5min";
 
 function LoadCard() {
+  const { theme } = useTheme();
+  const themeColors = getChartThemeColors(theme);
   const [zoneType, setZoneType] = useState<ZoneType>("weather_zone");
   const [startDate, setStartDate] = useState("yesterday");
 
@@ -53,11 +57,11 @@ function LoadCard() {
 
   const chartData = loadData?.data
     ? loadData.data.slice(0, 50).map((record, idx) => ({
-        index: idx,
-        load: Number(record["Total"] || record["total"] || 0),
-        operatingDay: String(record["Operating Day"] || ""),
-        hour: idx,
-      }))
+      index: idx,
+      load: Number(record["Total"] || record["total"] || 0),
+      operatingDay: String(record["Operating Day"] || ""),
+      hour: idx,
+    }))
     : [];
 
   // Get latest timestamp
@@ -119,15 +123,15 @@ function LoadCard() {
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
-                <XAxis 
-                  dataKey="hour" 
-                  tick={{ fontSize: 10 }}
+                <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} vertical={false} />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fontSize: 10, fill: themeColors.axisText }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 10, fill: themeColors.axisText }}
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                   axisLine={false}
                   tickLine={false}
@@ -135,19 +139,21 @@ function LoadCard() {
                 <Tooltip
                   formatter={(value) => formatMW(Number(value ?? 0))}
                   labelFormatter={(_, payload) => `Date: ${payload?.[0]?.payload?.operatingDay || ""}`}
-                  contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
-                  labelStyle={{ color: 'oklch(var(--bc))' }}
-                  itemStyle={{ color: 'oklch(var(--bc))' }}
+                  contentStyle={{
+                    backgroundColor: themeColors.tooltipBg,
+                    border: `1px solid ${themeColors.tooltipBorder}`,
+                    borderRadius: "0.5rem",
+                    color: themeColors.tooltipText,
+                  }}
+                  labelStyle={{ color: themeColors.tooltipText }}
+                  itemStyle={{ color: themeColors.tooltipText }}
                 />
-                <Legend 
-                  wrapperStyle={{ fontSize: 11 }}
-                  formatter={(value) => <span style={{ color: 'oklch(var(--bc))' }}>{value}</span>}
-                />
+                <Legend wrapperStyle={{ fontSize: 11, color: themeColors.legendText }} />
                 <Area
                   type="monotone"
                   dataKey="load"
-                  stroke="oklch(var(--p))"
-                  fill="oklch(var(--p) / 0.2)"
+                  stroke={CHART_COLORS.primary}
+                  fill={FILL_COLORS.primary}
                   strokeWidth={2}
                   name="Load (MW)"
                 />
@@ -165,9 +171,11 @@ function LoadCard() {
 }
 
 function WindForecastCard() {
+  const { theme } = useTheme();
+  const themeColors = getChartThemeColors(theme);
   const [resolution, setResolution] = useState<Resolution>("hourly");
   const [byRegion, setByRegion] = useState(false);
-  const [startDate, setStartDate] = useState("yesterday");
+  const [startDate, setStartDate] = useState("today");
 
   const { data: windData, isLoading, error, refetch } = useWindForecast({
     start: startDate,
@@ -175,18 +183,59 @@ function WindForecastCard() {
     by_region: byRegion,
   });
 
-  const chartData = windData?.data
-    ? windData.data.slice(0, 100).map((record, idx) => ({
-        index: idx,
-        actual: Number(record["Generation System Wide"] || 0),
-        forecast: Number(record["STWPF System Wide"] || 0),
-        time: String(record["Time"] || ""),
-        hour: idx,
-      }))
-    : [];
+  // Process chart data with flexible column name matching
+  const { chartData, latestTime, hasData } = useMemo(() => {
+    if (!windData?.data || windData.data.length === 0) {
+      return { chartData: [], latestTime: null, hasData: false };
+    }
 
-  // Get latest timestamp
-  const latestTime = windData?.data?.[windData.data.length - 1]?.["Time"] as string | undefined;
+    // Find the correct column names (they may vary)
+    const firstRecord = windData.data[0];
+    const keys = Object.keys(firstRecord);
+
+    // Try different possible column names for actual generation
+    const actualKey =
+      keys.find(
+        (k) =>
+          k.toLowerCase().includes("generation") ||
+          k.toLowerCase().includes("actual") ||
+          k === "System Wide"
+      ) || "Generation System Wide";
+
+    // Try different possible column names for forecast
+    const forecastKey =
+      keys.find(
+        (k) =>
+          k.toLowerCase().includes("stwpf") ||
+          k.toLowerCase().includes("forecast") ||
+          k.toLowerCase().includes("stppf")
+      ) || "STWPF System Wide";
+
+    // Try different possible column names for time
+    const timeKey =
+      keys.find((k) => k.toLowerCase().includes("time") || k.toLowerCase().includes("hour")) ||
+      "Time";
+
+    const data = windData.data.slice(0, 100).map((record, idx) => {
+      const actualVal = Number(record[actualKey] || 0);
+      const forecastVal = Number(record[forecastKey] || 0);
+
+      return {
+        index: idx,
+        actual: actualVal,
+        forecast: forecastVal,
+        time: String(record[timeKey] || ""),
+        hour: idx,
+      };
+    });
+
+    // Filter out records where both values are 0 (no real data)
+    const hasRealData = data.some((d) => d.actual > 0 || d.forecast > 0);
+
+    const lastTime = windData.data[windData.data.length - 1]?.[timeKey] as string | undefined;
+
+    return { chartData: data, latestTime: lastTime, hasData: hasRealData };
+  }, [windData]);
 
   return (
     <Card>
@@ -251,30 +300,55 @@ function WindForecastCard() {
             message={error instanceof Error ? error.message : "Failed to load data"}
             onRetry={() => refetch()}
           />
-        ) : chartData.length > 0 ? (
+        ) : chartData.length > 0 && hasData ? (
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
-                <XAxis dataKey="hour" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} vertical={false} />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fontSize: 10, fill: themeColors.axisText }}
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip 
+                <YAxis
+                  tick={{ fontSize: 10, fill: themeColors.axisText }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={[0, "auto"]}
+                />
+                <Tooltip
                   formatter={(value) => formatMW(Number(value ?? 0))}
-                  contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
-                  labelStyle={{ color: 'oklch(var(--bc))' }}
-                  itemStyle={{ color: 'oklch(var(--bc))' }}
+                  contentStyle={{
+                    backgroundColor: themeColors.tooltipBg,
+                    border: `1px solid ${themeColors.tooltipBorder}`,
+                    borderRadius: "0.5rem",
+                    color: themeColors.tooltipText,
+                  }}
+                  labelStyle={{ color: themeColors.tooltipText }}
+                  itemStyle={{ color: themeColors.tooltipText }}
                 />
-                <Legend 
-                  wrapperStyle={{ fontSize: 10 }}
-                  formatter={(value) => <span style={{ color: 'oklch(var(--bc))' }}>{value}</span>}
+                <Legend wrapperStyle={{ fontSize: 10, color: themeColors.legendText }} />
+                <Line
+                  type="monotone"
+                  dataKey="actual"
+                  stroke={CHART_COLORS.actual}
+                  strokeWidth={2}
+                  dot={false}
+                  name="Actual (MW)"
+                  connectNulls
                 />
-                <Line type="monotone" dataKey="actual" stroke="oklch(var(--su))" strokeWidth={2} dot={false} name="Actual (MW)" />
-                <Line type="monotone" dataKey="forecast" stroke="oklch(var(--bc) / 0.5)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast (MW)" />
+                <Line
+                  type="monotone"
+                  dataKey="forecast"
+                  stroke={CHART_COLORS.forecast}
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  name="Forecast (MW)"
+                  connectNulls
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -289,9 +363,11 @@ function WindForecastCard() {
 }
 
 function SolarForecastCard() {
+  const { theme } = useTheme();
+  const themeColors = getChartThemeColors(theme);
   const [resolution, setResolution] = useState<Resolution>("hourly");
   const [byRegion, setByRegion] = useState(false);
-  const [startDate, setStartDate] = useState("yesterday");
+  const [startDate, setStartDate] = useState("today");
 
   const { data: solarData, isLoading, error, refetch } = useSolarForecast({
     start: startDate,
@@ -299,18 +375,55 @@ function SolarForecastCard() {
     by_region: byRegion,
   });
 
-  const chartData = solarData?.data
-    ? solarData.data.slice(0, 100).map((record, idx) => ({
-        index: idx,
-        actual: Number(record["Generation System Wide"] || 0),
-        forecast: Number(record["STPPF System Wide"] || 0),
-        time: String(record["Time"] || ""),
-        hour: idx,
-      }))
-    : [];
+  // Process chart data with flexible column name matching
+  const { chartData, latestTime, hasData } = useMemo(() => {
+    if (!solarData?.data || solarData.data.length === 0) {
+      return { chartData: [], latestTime: null, hasData: false };
+    }
 
-  // Get latest timestamp
-  const latestTime = solarData?.data?.[solarData.data.length - 1]?.["Time"] as string | undefined;
+    // Find the correct column names (they may vary)
+    const firstRecord = solarData.data[0];
+    const keys = Object.keys(firstRecord);
+
+    // Try different possible column names for actual generation
+    const actualKey =
+      keys.find(
+        (k) =>
+          k.toLowerCase().includes("generation") ||
+          k.toLowerCase().includes("actual") ||
+          k === "System Wide"
+      ) || "Generation System Wide";
+
+    // Try different possible column names for forecast (STPPF for solar)
+    const forecastKey =
+      keys.find((k) => k.toLowerCase().includes("stppf") || k.toLowerCase().includes("forecast")) ||
+      "STPPF System Wide";
+
+    // Try different possible column names for time
+    const timeKey =
+      keys.find((k) => k.toLowerCase().includes("time") || k.toLowerCase().includes("hour")) ||
+      "Time";
+
+    const data = solarData.data.slice(0, 100).map((record, idx) => {
+      const actualVal = Number(record[actualKey] || 0);
+      const forecastVal = Number(record[forecastKey] || 0);
+
+      return {
+        index: idx,
+        actual: actualVal,
+        forecast: forecastVal,
+        time: String(record[timeKey] || ""),
+        hour: idx,
+      };
+    });
+
+    // Filter out records where both values are 0 (no real data)
+    const hasRealData = data.some((d) => d.actual > 0 || d.forecast > 0);
+
+    const lastTime = solarData.data[solarData.data.length - 1]?.[timeKey] as string | undefined;
+
+    return { chartData: data, latestTime: lastTime, hasData: hasRealData };
+  }, [solarData]);
 
   return (
     <Card>
@@ -375,30 +488,55 @@ function SolarForecastCard() {
             message={error instanceof Error ? error.message : "Failed to load data"}
             onRetry={() => refetch()}
           />
-        ) : chartData.length > 0 ? (
+        ) : chartData.length > 0 && hasData ? (
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
-                <XAxis dataKey="hour" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} vertical={false} />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fontSize: 10, fill: themeColors.axisText }}
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip 
+                <YAxis
+                  tick={{ fontSize: 10, fill: themeColors.axisText }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={[0, "auto"]}
+                />
+                <Tooltip
                   formatter={(value) => formatMW(Number(value ?? 0))}
-                  contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
-                  labelStyle={{ color: 'oklch(var(--bc))' }}
-                  itemStyle={{ color: 'oklch(var(--bc))' }}
+                  contentStyle={{
+                    backgroundColor: themeColors.tooltipBg,
+                    border: `1px solid ${themeColors.tooltipBorder}`,
+                    borderRadius: "0.5rem",
+                    color: themeColors.tooltipText,
+                  }}
+                  labelStyle={{ color: themeColors.tooltipText }}
+                  itemStyle={{ color: themeColors.tooltipText }}
                 />
-                <Legend 
-                  wrapperStyle={{ fontSize: 10 }}
-                  formatter={(value) => <span style={{ color: 'oklch(var(--bc))' }}>{value}</span>}
+                <Legend wrapperStyle={{ fontSize: 10, color: themeColors.legendText }} />
+                <Line
+                  type="monotone"
+                  dataKey="actual"
+                  stroke={CHART_COLORS.warning}
+                  strokeWidth={2}
+                  dot={false}
+                  name="Actual (MW)"
+                  connectNulls
                 />
-                <Line type="monotone" dataKey="actual" stroke="oklch(var(--wa))" strokeWidth={2} dot={false} name="Actual (MW)" />
-                <Line type="monotone" dataKey="forecast" stroke="oklch(var(--bc) / 0.5)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast (MW)" />
+                <Line
+                  type="monotone"
+                  dataKey="forecast"
+                  stroke={CHART_COLORS.forecast}
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  name="Forecast (MW)"
+                  connectNulls
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
