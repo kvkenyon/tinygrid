@@ -270,6 +270,10 @@ class ERCOTDocumentsMixin:
                             # Don't break - keep looking for CSV
 
                     if not target_file:
+                        logger.warning(
+                            f"No CSV or Excel file found in ZIP for document {doc.doc_id}. "
+                            f"Defaulting to first file: {file_list[0]}"
+                        )
                         # Use first file
                         target_file = file_list[0]
 
