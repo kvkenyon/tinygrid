@@ -10,16 +10,18 @@ The tinygrid SDK uses a modular mixin-based architecture for the ERCOT client:
 tinygrid/
 ├── ercot/                 # ERCOT client package
 │   ├── __init__.py        # Main ERCOT class (combines all mixins)
-│   ├── client.py          # ERCOTBase - auth, retry, pagination, core helpers
+│   ├── client.py          # ERCOTBase - auth, retry, pagination, rate limiting
 │   ├── endpoints.py       # ERCOTEndpointsMixin - 100+ pyercot endpoint wrappers
 │   ├── api.py             # ERCOTAPIMixin - high-level unified API methods
 │   ├── archive.py         # ERCOTArchive - historical archive API access
-│   ├── dashboard.py       # ERCOTDashboardMixin - public dashboard methods (no auth)
+│   ├── dashboard.py       # ERCOTDashboardMixin - public dashboard JSON endpoints
 │   ├── documents.py       # ERCOTDocumentsMixin - MIS document fetching
+│   ├── eia.py             # EIAClient - EIA API integration
+│   ├── polling.py         # ERCOTPoller - real-time polling utilities
 │   └── transforms.py      # Data filtering and transformation utilities
 ├── auth/                  # Authentication handling
 ├── constants/             # Market types, location enums, mappings
-├── utils/                 # Date parsing, timezone handling, decorators
+├── utils/                 # Date parsing, timezone, decorators, rate limiting
 └── errors.py              # Exception hierarchy
 ```
 
@@ -67,20 +69,30 @@ df = ercot.get_as_prices(start="today")
 
 ### Dashboard Module (dashboard.py)
 
-**Note:** The dashboard methods are placeholders. ERCOT does not provide
-documented public JSON endpoints for dashboard data. Use authenticated
-API methods instead:
+Access ERCOT's public dashboard JSON endpoints (no auth required):
 
 ```python
 ercot = ERCOT()
 
-# For system load data, use:
-load = ercot.get_load(start="today", by="weather_zone")
+# Get current grid status
+status = ercot.get_status()
+print(f"Condition: {status.condition}")  # NORMAL, WATCH, EMERGENCY, EEA1, etc.
+print(f"Load: {status.current_load:,.0f} MW")
+print(f"Reserves: {status.reserves:,.0f} MW")
 
-# For forecasts, use:
-wind = ercot.get_wind_forecast(start="today")
-solar = ercot.get_solar_forecast(start="today")
+# Get fuel mix
+fuel_mix = ercot.get_fuel_mix()  # Returns DataFrame
+
+# Get renewable generation
+renewables = ercot.get_renewable_generation()  # Returns RenewableStatus
+print(f"Wind: {renewables.wind_mw:,.0f} MW")
+print(f"Solar: {renewables.solar_mw:,.0f} MW")
+
+# Get supply/demand curve
+supply_demand = ercot.get_supply_demand()
 ```
+
+**Note:** These endpoints are undocumented and may change without notice.
 
 ### Historical Yearly Data (documents.py)
 
@@ -127,6 +139,7 @@ with ERCOT(auth=auth) as ercot:
 Core functionality inherited by ERCOT class:
 - Authentication and token management
 - Retry with exponential backoff (via tenacity)
+- Rate limiting (30 req/min, configurable)
 - Pagination handling for large result sets
 - DataFrame conversion from API responses
 - Historical data routing decisions
@@ -161,6 +174,38 @@ MIS document fetching for yearly historical data:
 - `get_settlement_point_mapping()`
 - Access to ERCOT's Market Information System reports
 
+### eia.py (EIAClient)
+
+Access ERCOT data via the EIA API (useful for data before Dec 2023):
+
+```python
+from tinygrid.ercot import EIAClient
+
+eia = EIAClient(api_key="your-eia-key")
+
+# Get hourly demand (from 2019)
+demand = eia.get_demand(start="2022-01-01", end="2022-01-07")
+
+# Get generation by fuel type
+gen = eia.get_generation_by_fuel(start="2022-01-01")
+```
+
+### polling.py (ERCOTPoller)
+
+Real-time polling utilities for continuous data monitoring:
+
+```python
+from tinygrid.ercot import ERCOTPoller, poll_latest
+
+# Simple generator pattern
+for df in poll_latest(ercot, ercot.get_spp, interval=60, max_iterations=10):
+    process(df)
+
+# Callback pattern with error handling
+poller = ERCOTPoller(client=ercot, interval=60, max_errors=5)
+poller.poll(method=ercot.get_spp, callback=handle_data)
+```
+
 ### transforms.py
 
 Standalone data transformation functions:
@@ -184,4 +229,4 @@ Standalone data transformation functions:
 pytest tests/
 ```
 
-505 tests covering all functionality.
+746 tests with 95% code coverage.

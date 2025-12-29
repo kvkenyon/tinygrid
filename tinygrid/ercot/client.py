@@ -36,6 +36,7 @@ from ..errors import (
     GridRetryExhaustedError,
     GridTimeoutError,
 )
+from ..utils.rate_limiter import ERCOT_REQUESTS_PER_MINUTE, RateLimiter
 
 if TYPE_CHECKING:
     from .archive import ERCOTArchive
@@ -77,6 +78,8 @@ class ERCOTBase(BaseISOClient):
         retry_max_wait: Maximum wait time between retries in seconds. Defaults to 60.0.
         page_size: Number of records per page when fetching data. Defaults to 10000.
         max_concurrent_requests: Maximum number of concurrent page requests. Defaults to 5.
+        rate_limit_enabled: Whether to enforce rate limiting. Defaults to True.
+        requests_per_minute: Maximum requests per minute. Defaults to 30 (ERCOT limit).
     """
 
     base_url: str = field(default="https://api.ercot.com/api/public-reports")
@@ -94,6 +97,10 @@ class ERCOTBase(BaseISOClient):
     page_size: int = field(default=10000, kw_only=True)
     max_concurrent_requests: int = field(default=5, kw_only=True)
 
+    # Rate limiting configuration
+    rate_limit_enabled: bool = field(default=True, kw_only=True)
+    requests_per_minute: float = field(default=ERCOT_REQUESTS_PER_MINUTE, kw_only=True)
+
     _client: ERCOTClient | AuthenticatedClient | None = field(
         default=None, init=False, repr=False
     )
@@ -101,6 +108,7 @@ class ERCOTBase(BaseISOClient):
         default=None, init=False, repr=False
     )
     _archive: Any = field(default=None, init=False, repr=False)
+    _rate_limiter: RateLimiter | None = field(default=None, init=False, repr=False)
 
     @property
     def iso_name(self) -> str:
@@ -165,6 +173,21 @@ class ERCOTBase(BaseISOClient):
                 )
 
         return self._client
+
+    def _get_rate_limiter(self) -> RateLimiter | None:
+        """Get or create the rate limiter.
+
+        Returns:
+            RateLimiter instance if rate limiting is enabled, None otherwise
+        """
+        if not self.rate_limit_enabled:
+            return None
+
+        if self._rate_limiter is None:
+            self._rate_limiter = RateLimiter(
+                requests_per_minute=self.requests_per_minute
+            )
+        return self._rate_limiter
 
     def __enter__(self) -> ERCOTBase:
         """Enter a context manager for the client."""
@@ -472,6 +495,11 @@ class ERCOTBase(BaseISOClient):
             Dictionary containing the response data
         """
         try:
+            # Apply rate limiting before making the request
+            rate_limiter = self._get_rate_limiter()
+            if rate_limiter is not None:
+                rate_limiter.acquire()
+
             client = self._get_client()
             response = endpoint_module.sync(client=client, **kwargs)
 

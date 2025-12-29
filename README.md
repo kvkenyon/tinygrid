@@ -66,17 +66,46 @@ ercot = ERCOT()
 # Get actual system load by weather zone
 load = ercot.get_load(start="today", by="weather_zone")
 
-# Get wind generation forecast
+# Get wind generation forecast (hourly or 5-minute resolution)
 wind = ercot.get_wind_forecast(start="today")
+wind_5min = ercot.get_wind_forecast(start="today", resolution="5min")
 
 # Get solar generation forecast  
 solar = ercot.get_solar_forecast(start="today")
+solar_5min = ercot.get_solar_forecast(start="today", resolution="5min", by_region=True)
 
 # Get load forecast
 load_forecast = ercot.get_load_forecast_by_weather_zone(
     start_date="2024-12-28",
     end_date="2024-12-29",
 )
+```
+
+### Dashboard Data (No Authentication Required)
+
+Access real-time grid status from ERCOT's public dashboard:
+
+```python
+from tinygrid import ERCOT
+
+ercot = ERCOT()
+
+# Get current grid status
+status = ercot.get_status()
+print(f"Condition: {status.condition}")
+print(f"Load: {status.current_load:,.0f} MW")
+print(f"Reserves: {status.reserves:,.0f} MW")
+
+# Get current fuel mix
+fuel_mix = ercot.get_fuel_mix()
+
+# Get renewable generation status
+renewables = ercot.get_renewable_generation()
+print(f"Wind: {renewables.wind_mw:,.0f} MW")
+print(f"Solar: {renewables.solar_mw:,.0f} MW")
+
+# Get supply/demand data
+supply_demand = ercot.get_supply_demand()
 ```
 
 ### Historical Yearly Data
@@ -128,6 +157,50 @@ forecast = ercot.get_load_forecast_by_weather_zone(
 )
 ```
 
+### Polling for Real-Time Updates
+
+For continuous data monitoring, use the polling utilities:
+
+```python
+from tinygrid import ERCOT
+from tinygrid.ercot import ERCOTPoller, poll_latest
+
+ercot = ERCOT(auth=auth)
+
+# Simple generator pattern
+for df in poll_latest(ercot, ercot.get_spp, interval=60, max_iterations=10):
+    print(f"Latest prices: {len(df)} rows")
+
+# Using ERCOTPoller with callback
+poller = ERCOTPoller(client=ercot, interval=60)
+
+def handle_data(result):
+    if result.success:
+        print(f"Got {len(result.data)} rows at {result.timestamp}")
+
+poller.poll(method=ercot.get_spp, callback=handle_data, max_iterations=10)
+```
+
+### EIA Integration (Supplementary Data)
+
+Access ERCOT data via the EIA API for historical data before December 2023:
+
+```python
+from tinygrid.ercot import EIAClient
+
+# Requires free API key from https://www.eia.gov/opendata/register.php
+eia = EIAClient(api_key="your-eia-key")
+
+# Get hourly demand
+demand = eia.get_demand(start="2022-01-01", end="2022-01-07")
+
+# Get generation by fuel type
+gen_by_fuel = eia.get_generation_by_fuel(start="2022-01-01")
+
+# Get net interchange
+interchange = eia.get_interchange(start="2022-01-01")
+```
+
 See [`examples/ercot_demo.ipynb`](examples/ercot_demo.ipynb) for complete examples.
 
 ## Unified API Methods
@@ -148,9 +221,27 @@ These methods provide a simpler interface with automatic routing, date parsing, 
 
 | Method | Description |
 |--------|-------------|
-| `get_wind_forecast()` | Wind power forecast (system-wide or by region) |
-| `get_solar_forecast()` | Solar power forecast (system-wide or by region) |
+| `get_wind_forecast()` | Wind power forecast (hourly or 5-minute, system-wide or by region) |
+| `get_solar_forecast()` | Solar power forecast (hourly or 5-minute, system-wide or by region) |
 | `get_load()` | Actual system load by weather or forecast zone |
+
+### System-Wide Data Methods
+
+| Method | Description |
+|--------|-------------|
+| `get_dc_tie_flows()` | DC tie flow data (connections to Eastern Interconnection/Mexico) |
+| `get_total_generation()` | Total ERCOT system generation |
+| `get_system_wide_actuals()` | System-wide actual values per SCED interval |
+
+### Dashboard Methods (No Auth Required)
+
+| Method | Description |
+|--------|-------------|
+| `get_status()` | Grid operating condition, load, capacity, reserves |
+| `get_fuel_mix()` | Current generation by fuel type |
+| `get_renewable_generation()` | Wind and solar output with forecasts |
+| `get_supply_demand()` | Hourly supply/demand data |
+| `get_daily_prices()` | Daily price summary |
 
 ### Direct Endpoint Methods
 
@@ -177,6 +268,9 @@ For full control, 100+ low-level endpoint methods are available:
 - **Location filtering**: Filter by load zones, trading hubs, or specific settlement points
 - **Market selection**: Choose between real-time and day-ahead markets
 - **Standardized columns**: Consistent column names across all endpoints
+- **Rate limiting**: Built-in rate limiter (30 req/min) to prevent API throttling
+- **5-minute resolution**: Wind and solar forecasts available in 5-minute granularity
+- **Retry with backoff**: Automatic retry for transient failures
 
 ## ERCOT API Credentials
 
@@ -187,6 +281,20 @@ Authentication is required for some endpoints. To get credentials:
 3. Use your email, password, and subscription key
 
 **Note:** Dashboard methods (`get_status()`, `get_fuel_mix()`, etc.) do not require authentication.
+
+## API Data Availability
+
+Important limitations to be aware of:
+
+| Limitation | Details |
+|------------|---------|
+| **API Data Start Date** | December 11, 2023 - use archive API or EIA for earlier data |
+| **Data Delay** | ~1 hour from real-time to API availability |
+| **Geographic Restriction** | US IP addresses only (VPN required for international) |
+| **Rate Limit** | 30 requests per minute (built-in rate limiter enforces this) |
+| **Bulk Download Limit** | 1,000 documents per archive request |
+
+For data before December 2023, use `get_rtm_spp_historical()`, `get_dam_spp_historical()`, or the EIA integration.
 
 ## Available ERCOT Endpoints
 
@@ -247,20 +355,22 @@ tinygrid/
 ├── tinygrid/              # SDK layer
 │   ├── ercot/             # ERCOT client package
 │   │   ├── __init__.py    # Main ERCOT class (combining mixins)
-│   │   ├── client.py      # ERCOTBase with auth, retry, pagination
+│   │   ├── client.py      # ERCOTBase with auth, retry, pagination, rate limiting
 │   │   ├── endpoints.py   # Low-level pyercot wrappers (~100 methods)
 │   │   ├── api.py         # High-level unified API methods
 │   │   ├── archive.py     # Historical archive access
 │   │   ├── dashboard.py   # Public dashboard methods (no auth)
 │   │   ├── documents.py   # MIS document fetching
+│   │   ├── eia.py         # EIA API integration for supplementary data
+│   │   ├── polling.py     # Real-time polling utilities
 │   │   └── transforms.py  # Data filtering/transformation utilities
 │   ├── auth/              # Authentication handling
 │   ├── constants/         # Market types, location enums, endpoint mappings
-│   ├── utils/             # Date parsing, timezone handling, decorators
+│   ├── utils/             # Date parsing, timezone, decorators, rate limiting
 │   └── errors.py          # Error types
 ├── pyercot/               # Auto-generated ERCOT API client (from OpenAPI spec)
 ├── examples/              # Usage examples
-└── tests/                 # Test suite (505 tests)
+└── tests/                 # Test suite (746 tests, 95% coverage)
 ```
 
 ## Development

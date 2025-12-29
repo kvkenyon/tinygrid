@@ -405,6 +405,7 @@ class ERCOTAPIMixin:
         start: str | pd.Timestamp = "today",
         end: str | pd.Timestamp | None = None,
         by_region: bool = False,
+        resolution: str = "hourly",
     ) -> pd.DataFrame:
         """Get wind power production forecast.
 
@@ -412,36 +413,92 @@ class ERCOTAPIMixin:
             start: Start date
             end: End date (defaults to start + 1 day)
             by_region: If True, get by geographical region
+            resolution: Data resolution - "hourly" (default) or "5min" for 5-minute data
 
         Returns:
             DataFrame with wind forecast data
+
+        Example:
+            ```python
+            ercot = ERCOT()
+
+            # Hourly wind forecast (default)
+            df = ercot.get_wind_forecast(start="2024-01-15")
+
+            # 5-minute wind data
+            df = ercot.get_wind_forecast(start="2024-01-15", resolution="5min")
+
+            # 5-minute wind data by geographic region
+            df = ercot.get_wind_forecast(
+                start="2024-01-15",
+                resolution="5min",
+                by_region=True,
+            )
+            ```
         """
         start_ts, end_ts = parse_date_range(start, end)
 
-        if by_region:
-            if self._needs_historical(start_ts, "forecast"):
-                df = self._get_archive().fetch_historical(
-                    endpoint="/np4-742-cd/wpp_hrly_actual_fcast_geo",
-                    start=start_ts,
-                    end=end_ts,
-                )
+        # Validate resolution
+        resolution = resolution.lower()
+        if resolution not in ("hourly", "5min", "5-min", "5_min"):
+            raise ValueError(
+                f"Invalid resolution: {resolution}. Use 'hourly' or '5min'."
+            )
+
+        use_5min = resolution in ("5min", "5-min", "5_min")
+
+        if use_5min:
+            # 5-minute data endpoints
+            if by_region:
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-743-cd/wpp_actual_5min_avg_values_geo",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_wpp_actual_5min_avg_values_geo(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
             else:
-                df = self.get_wpp_hourly_actual_forecast_geo(
-                    posted_datetime_from=format_api_date(start_ts),
-                    posted_datetime_to=format_api_date(end_ts),
-                )
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-733-cd/wpp_actual_5min_avg_values",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_wpp_actual_5min_avg_values(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
         else:
-            if self._needs_historical(start_ts, "forecast"):
-                df = self._get_archive().fetch_historical(
-                    endpoint="/np4-732-cd/wpp_hrly_avrg_actl_fcast",
-                    start=start_ts,
-                    end=end_ts,
-                )
+            # Hourly data endpoints (default)
+            if by_region:
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-742-cd/wpp_hrly_actual_fcast_geo",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_wpp_hourly_actual_forecast_geo(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
             else:
-                df = self.get_wpp_hourly_average_actual_forecast(
-                    posted_datetime_from=format_api_date(start_ts),
-                    posted_datetime_to=format_api_date(end_ts),
-                )
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-732-cd/wpp_hrly_avrg_actl_fcast",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_wpp_hourly_average_actual_forecast(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
 
         df = filter_by_date(df, start_ts, end_ts, date_column="Posted Datetime")
         return standardize_columns(df)
@@ -451,6 +508,7 @@ class ERCOTAPIMixin:
         start: str | pd.Timestamp = "today",
         end: str | pd.Timestamp | None = None,
         by_region: bool = False,
+        resolution: str = "hourly",
     ) -> pd.DataFrame:
         """Get solar power production forecast.
 
@@ -458,38 +516,222 @@ class ERCOTAPIMixin:
             start: Start date
             end: End date (defaults to start + 1 day)
             by_region: If True, get by geographical region
+            resolution: Data resolution - "hourly" (default) or "5min" for 5-minute data
 
         Returns:
             DataFrame with solar forecast data
+
+        Example:
+            ```python
+            ercot = ERCOT()
+
+            # Hourly solar forecast (default)
+            df = ercot.get_solar_forecast(start="2024-01-15")
+
+            # 5-minute solar data
+            df = ercot.get_solar_forecast(start="2024-01-15", resolution="5min")
+
+            # 5-minute solar data by geographic region
+            df = ercot.get_solar_forecast(
+                start="2024-01-15",
+                resolution="5min",
+                by_region=True,
+            )
+            ```
         """
         start_ts, end_ts = parse_date_range(start, end)
 
-        if by_region:
-            if self._needs_historical(start_ts, "forecast"):
-                df = self._get_archive().fetch_historical(
-                    endpoint="/np4-745-cd/spp_hrly_actual_fcast_geo",
-                    start=start_ts,
-                    end=end_ts,
-                )
+        # Validate resolution
+        resolution = resolution.lower()
+        if resolution not in ("hourly", "5min", "5-min", "5_min"):
+            raise ValueError(
+                f"Invalid resolution: {resolution}. Use 'hourly' or '5min'."
+            )
+
+        use_5min = resolution in ("5min", "5-min", "5_min")
+
+        if use_5min:
+            # 5-minute data endpoints
+            if by_region:
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-746-cd/spp_actual_5min_avg_values_geo",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_spp_actual_5min_avg_values_geo(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
             else:
-                df = self.get_spp_hourly_actual_forecast_geo(
-                    posted_datetime_from=format_api_date(start_ts),
-                    posted_datetime_to=format_api_date(end_ts),
-                )
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-738-cd/spp_actual_5min_avg_values",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_spp_actual_5min_avg_values(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
         else:
-            if self._needs_historical(start_ts, "forecast"):
-                df = self._get_archive().fetch_historical(
-                    endpoint="/np4-737-cd/spp_hrly_avrg_actl_fcast",
-                    start=start_ts,
-                    end=end_ts,
-                )
+            # Hourly data endpoints (default)
+            if by_region:
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-745-cd/spp_hrly_actual_fcast_geo",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_spp_hourly_actual_forecast_geo(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
             else:
-                df = self.get_spp_hourly_average_actual_forecast(
-                    posted_datetime_from=format_api_date(start_ts),
-                    posted_datetime_to=format_api_date(end_ts),
-                )
+                if self._needs_historical(start_ts, "forecast"):
+                    df = self._get_archive().fetch_historical(
+                        endpoint="/np4-737-cd/spp_hrly_avrg_actl_fcast",
+                        start=start_ts,
+                        end=end_ts,
+                    )
+                else:
+                    df = self.get_spp_hourly_average_actual_forecast(
+                        posted_datetime_from=format_api_date(start_ts),
+                        posted_datetime_to=format_api_date(end_ts),
+                    )
 
         df = filter_by_date(df, start_ts, end_ts, date_column="Posted Datetime")
+        return standardize_columns(df)
+
+    # ============================================================================
+    # System-Wide Generation and Transmission Data
+    # ============================================================================
+
+    def get_dc_tie_flows(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Get DC Tie flow data from state estimator.
+
+        DC Ties connect ERCOT to neighboring grids (Eastern Interconnection
+        and Mexico). This endpoint provides the scheduled and actual flows
+        across these ties.
+
+        EMIL ID: NP6-626-CD
+
+        Args:
+            start: Start date - "today", "yesterday", or ISO format
+            end: End date (defaults to start + 1 day)
+
+        Returns:
+            DataFrame with DC tie flow data
+
+        Note:
+            This data is only available through the archive API for historical
+            dates. Real-time access may require pyercot updates.
+
+        Example:
+            ```python
+            ercot = ERCOT(auth=auth)
+            dc_ties = ercot.get_dc_tie_flows(start="2024-01-15")
+            ```
+        """
+        start_ts, end_ts = parse_date_range(start, end)
+
+        # DC tie data via archive API
+        df = self._get_archive().fetch_historical(
+            endpoint="/np6-626-cd/dc_tie",
+            start=start_ts,
+            end=end_ts,
+        )
+
+        df = filter_by_date(df, start_ts, end_ts)
+        return standardize_columns(df)
+
+    def get_total_generation(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Get total ERCOT system generation.
+
+        Provides the total MW generation across the ERCOT system from
+        the state estimator.
+
+        EMIL ID: NP6-625-CD
+
+        Args:
+            start: Start date - "today", "yesterday", or ISO format
+            end: End date (defaults to start + 1 day)
+
+        Returns:
+            DataFrame with total system generation data
+
+        Note:
+            This data is only available through the archive API for historical
+            dates. Real-time access may require pyercot updates.
+
+        Example:
+            ```python
+            ercot = ERCOT(auth=auth)
+            total_gen = ercot.get_total_generation(start="2024-01-15")
+            ```
+        """
+        start_ts, end_ts = parse_date_range(start, end)
+
+        # Total generation via archive API
+        df = self._get_archive().fetch_historical(
+            endpoint="/np6-625-cd/se_totalgen",
+            start=start_ts,
+            end=end_ts,
+        )
+
+        df = filter_by_date(df, start_ts, end_ts)
+        return standardize_columns(df)
+
+    def get_system_wide_actuals(
+        self,
+        start: str | pd.Timestamp = "today",
+        end: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        """Get system-wide actual values per SCED interval.
+
+        Provides actual system-wide metrics from each SCED execution
+        including load, generation, and reserves.
+
+        EMIL ID: NP6-235-CD
+
+        Args:
+            start: Start date - "today", "yesterday", or ISO format
+            end: End date (defaults to start + 1 day)
+
+        Returns:
+            DataFrame with system-wide actual data
+
+        Note:
+            This data is only available through the archive API for historical
+            dates. Real-time access may require pyercot updates.
+
+        Example:
+            ```python
+            ercot = ERCOT(auth=auth)
+            actuals = ercot.get_system_wide_actuals(start="2024-01-15")
+            ```
+        """
+        start_ts, end_ts = parse_date_range(start, end)
+
+        # System-wide actuals via archive API
+        df = self._get_archive().fetch_historical(
+            endpoint="/np6-235-cd/sys_wide_actuals",
+            start=start_ts,
+            end=end_ts,
+        )
+
+        df = filter_by_date(df, start_ts, end_ts)
         return standardize_columns(df)
 
     # ============================================================================
