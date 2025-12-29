@@ -29,6 +29,8 @@ export const dashboardAPI = {
   
   getFuelMix: () => fetchAPI<import("./types").FuelMixResponse>(`${API_BASE}/fuel-mix`),
   
+  getFuelMixRealtime: () => fetchAPI<import("./types").FuelMixResponse>(`${API_BASE}/fuel-mix-realtime`),
+  
   getRenewable: () => fetchAPI<import("./types").RenewableStatus>(`${API_BASE}/renewable`),
   
   getSupplyDemand: () => fetchAPI<import("./types").SupplyDemandResponse>(`${API_BASE}/supply-demand`),
@@ -50,12 +52,33 @@ export interface LMPParams {
   location_type?: "resource_node" | "electrical_bus";
 }
 
+export interface LMPCombinedParams {
+  location_type?: "load_zone" | "trading_hub" | "dc_tie";
+  location?: string;
+}
+
+export interface LMPCombinedResponse {
+  data: Array<{
+    time: string;
+    location: string;
+    rt_price: number | null;
+    da_price: number | null;
+    market: "RT" | "DA";
+  }>;
+  locations: string[];
+  latest_rt_time: string | null;
+  count: number;
+}
+
 export const pricesAPI = {
   getSPP: (params?: SPPParams) =>
     fetchAPI<import("./types").SPPResponse>(`${API_BASE}/spp`, params as Record<string, string>),
   
   getLMP: (params?: LMPParams) =>
     fetchAPI<import("./types").LMPResponse>(`${API_BASE}/lmp`, params as Record<string, string>),
+  
+  getLMPCombined: (params?: LMPCombinedParams) =>
+    fetchAPI<LMPCombinedResponse>(`${API_BASE}/lmp-combined`, params as Record<string, string>),
   
   getDailyPrices: () =>
     fetchAPI<import("./types").DailyPricesResponse>(`${API_BASE}/daily-prices`),

@@ -16,6 +16,7 @@ from routes import (
     historical_router,
     prices_router,
 )
+from routes.prices import prefetch_da_lmp
 
 
 @asynccontextmanager
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Initialize ERCOT client on startup
     initialize_client()
+    # Prefetch Day-Ahead LMP data (cached for the day)
+    prefetch_da_lmp()
     yield
     # Cleanup on shutdown
     cleanup_client()

@@ -164,6 +164,127 @@ def get_status() -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Failed to fetch grid status: {e}")
 
 
+@router.get("/fuel-mix-realtime")
+def get_fuel_mix_realtime() -> dict[str, Any]:
+    """Get estimated fuel mix based on real wind/solar data and typical ERCOT baseload.
+
+    Since ERCOT's public dashboard JSON is not reliably available, this endpoint
+    estimates the fuel mix using:
+    - Real wind and solar generation data from the authenticated API
+    - Typical ERCOT baseload values for nuclear (~5.1 GW) and coal (~8-10 GW)
+    - Natural gas fills the remainder between load and other sources
+    """
+    from datetime import datetime
+
+    import pytz
+
+    try:
+        ercot = get_ercot()
+        entries = []
+        # Use Central Time for timestamp
+        ct = pytz.timezone("America/Chicago")
+        timestamp = datetime.now(ct).strftime("%Y-%m-%d %H:%M:%S %Z")
+
+        # Get current load
+        load_mw = 0.0
+        try:
+            load_df = ercot.get_load_forecast_by_weather_zone(
+                start_date=datetime.now().strftime("%Y-%m-%d"),
+                end_date=datetime.now().strftime("%Y-%m-%d"),
+            )
+            if not load_df.empty:
+                # Get record closest to current hour
+                current_hour = datetime.now().hour
+                if len(load_df) > current_hour:
+                    row = load_df.iloc[current_hour]
+                else:
+                    row = load_df.iloc[-1]
+                load_mw = safe_float(row.get("System Total", 0))
+        except Exception:
+            load_mw = 55000  # Default estimate
+
+        # Get real wind generation
+        wind_mw = 0.0
+        try:
+            wind_df = ercot.get_wind_forecast(start="today", resolution="hourly")
+            if not wind_df.empty:
+                current_hour = datetime.now().hour
+                if len(wind_df) > current_hour:
+                    row = wind_df.iloc[current_hour]
+                else:
+                    row = wind_df.iloc[-1]
+                gen = row.get("Generation System Wide")
+                if gen is not None and not (isinstance(gen, float) and math.isnan(gen)):
+                    wind_mw = safe_float(gen)
+                else:
+                    wind_mw = safe_float(row.get("STWPF System Wide", 0))
+        except Exception:
+            pass
+
+        # Get real solar generation
+        solar_mw = 0.0
+        try:
+            solar_df = ercot.get_solar_forecast(start="today", resolution="hourly")
+            if not solar_df.empty:
+                current_hour = datetime.now().hour
+                if len(solar_df) > current_hour:
+                    row = solar_df.iloc[current_hour]
+                else:
+                    row = solar_df.iloc[-1]
+                gen = row.get("Generation System Wide")
+                if gen is not None and not (isinstance(gen, float) and math.isnan(gen)):
+                    solar_mw = safe_float(gen)
+                else:
+                    solar_mw = safe_float(row.get("STPPF System Wide", 0))
+        except Exception:
+            pass
+
+        # Typical ERCOT baseload values (relatively constant)
+        nuclear_mw = 5100.0  # ~5.1 GW typical nuclear baseload
+        coal_mw = 8000.0  # ~8 GW typical coal baseload
+        hydro_mw = 50.0  # Very small hydro in ERCOT
+        other_mw = 100.0  # Other sources
+
+        # Calculate natural gas as remainder
+        known_gen = wind_mw + solar_mw + nuclear_mw + coal_mw + hydro_mw + other_mw
+        gas_mw = max(0, load_mw - known_gen)
+
+        # Total generation
+        total = wind_mw + solar_mw + nuclear_mw + coal_mw + gas_mw + hydro_mw + other_mw
+
+        # Build entries with percentages
+        fuel_data = [
+            ("Natural Gas", gas_mw),
+            ("Wind", wind_mw),
+            ("Coal And Lignite", coal_mw),
+            ("Solar", solar_mw),
+            ("Nuclear", nuclear_mw),
+            ("Other", other_mw),
+            ("Hydro", hydro_mw),
+        ]
+
+        for fuel_type, gen_mw in fuel_data:
+            pct = (gen_mw / total * 100) if total > 0 else 0
+            entries.append(
+                {
+                    "fuel_type": fuel_type,
+                    "generation_mw": gen_mw,
+                    "percentage": pct,
+                }
+            )
+
+        # Sort by generation (highest first)
+        entries.sort(key=lambda x: x["generation_mw"], reverse=True)
+
+        return {
+            "entries": entries,
+            "total_generation_mw": total,
+            "timestamp": timestamp,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to estimate fuel mix: {e}")
+
+
 @router.get("/fuel-mix", response_model=FuelMixResponse)
 def get_fuel_mix() -> dict[str, Any]:
     """Get current generation fuel mix.

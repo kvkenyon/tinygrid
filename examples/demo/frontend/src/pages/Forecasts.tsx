@@ -22,7 +22,22 @@ import {
   ErrorCard,
 } from "../components";
 import { formatMW, formatNumber } from "../lib/utils";
-import { Wind, Sun, Gauge } from "lucide-react";
+import { formatTime } from "../lib/time";
+import { Wind, Sun, Gauge, Clock } from "lucide-react";
+
+const TIMEZONE = "America/Chicago";
+
+// Timestamp badge component
+function TimestampBadge({ timestamp, label }: { timestamp?: string | null; label?: string }) {
+  const formattedTime = timestamp ? formatTime(timestamp, TIMEZONE) : "";
+  if (!formattedTime) return null;
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-base-content/60">
+      <Clock className="h-3 w-3" />
+      <span>{label ? `${label}: ` : ""}{formattedTime}</span>
+    </div>
+  );
+}
 
 type ZoneType = "weather_zone" | "forecast_zone";
 type Resolution = "hourly" | "5min";
@@ -36,8 +51,6 @@ function LoadCard() {
     by: zoneType,
   });
 
-  // Process data for display
-  // API returns: Operating Day, Coast, East, Far West, North, NorthC, Southern, SouthC, West, Total
   const chartData = loadData?.data
     ? loadData.data.slice(0, 50).map((record, idx) => ({
         index: idx,
@@ -47,49 +60,47 @@ function LoadCard() {
       }))
     : [];
 
+  // Get latest timestamp
+  const latestTime = loadData?.data?.[loadData.data.length - 1]?.["Operating Day"] as string | undefined;
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Gauge className="h-4 w-4" style={{ color: 'var(--accent-cyan)' }} />
-          <CardTitle>System Load</CardTitle>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-primary" />
+            <CardTitle>System Load</CardTitle>
+          </div>
+          <TimestampBadge timestamp={latestTime} />
         </div>
         <CardDescription>
-          {loadData?.count
-            ? `${formatNumber(loadData.count)} records`
-            : "Loading..."}
+          {loadData?.count ? `${formatNumber(loadData.count)} records` : "Loading..."}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          <div>
-            <label 
-              className="block text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Zone Type
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-xs">Zone Type</span>
             </label>
             <select
               value={zoneType}
               onChange={(e) => setZoneType(e.target.value as ZoneType)}
-              className="w-full px-3 py-2 text-sm border"
+              className="select select-bordered select-sm w-full"
             >
               <option value="weather_zone">Weather Zone</option>
               <option value="forecast_zone">Forecast Zone</option>
             </select>
           </div>
-          <div>
-            <label 
-              className="block text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Date
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-xs">Date</span>
             </label>
             <select
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border"
+              className="select select-bordered select-sm w-full"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
@@ -108,46 +119,35 @@ function LoadCard() {
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="var(--border-primary)"
-                  vertical={false}
-                />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
                 <XAxis 
                   dataKey="hour" 
-                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-                  axisLine={{ stroke: 'var(--border-primary)' }}
-                  tickLine={{ stroke: 'var(--border-primary)' }}
+                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                  tick={{ fontSize: 10 }}
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                  axisLine={{ stroke: 'var(--border-primary)' }}
-                  tickLine={{ stroke: 'var(--border-primary)' }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip
                   formatter={(value) => formatMW(Number(value ?? 0))}
-                  labelFormatter={(_, payload) =>
-                    `Date: ${payload?.[0]?.payload?.operatingDay || ""}`
-                  }
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--border-secondary)',
-                    borderRadius: 0,
-                    fontSize: 12,
-                  }}
-                  labelStyle={{ color: 'var(--text-primary)' }}
+                  labelFormatter={(_, payload) => `Date: ${payload?.[0]?.payload?.operatingDay || ""}`}
+                  contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
+                  labelStyle={{ color: 'oklch(var(--bc))' }}
+                  itemStyle={{ color: 'oklch(var(--bc))' }}
                 />
                 <Legend 
                   wrapperStyle={{ fontSize: 11 }}
-                  formatter={(value) => <span style={{ color: 'var(--text-secondary)' }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: 'oklch(var(--bc))' }}>{value}</span>}
                 />
                 <Area
                   type="monotone"
                   dataKey="load"
-                  stroke="var(--accent-cyan)"
-                  fill="var(--accent-cyan)"
-                  fillOpacity={0.2}
+                  stroke="oklch(var(--p))"
+                  fill="oklch(var(--p) / 0.2)"
                   strokeWidth={2}
                   name="Load (MW)"
                 />
@@ -155,7 +155,7 @@ function LoadCard() {
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-center py-8 text-sm text-base-content/50">
             No load data available
           </p>
         )}
@@ -175,8 +175,6 @@ function WindForecastCard() {
     by_region: byRegion,
   });
 
-  // Process data for display
-  // API returns: Time, End Time, Posted, Generation System Wide, STWPF System Wide, etc.
   const chartData = windData?.data
     ? windData.data.slice(0, 100).map((record, idx) => ({
         index: idx,
@@ -187,66 +185,61 @@ function WindForecastCard() {
       }))
     : [];
 
+  // Get latest timestamp
+  const latestTime = windData?.data?.[windData.data.length - 1]?.["Time"] as string | undefined;
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Wind className="h-4 w-4" style={{ color: 'var(--status-normal)' }} />
-          <CardTitle>Wind Forecast</CardTitle>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <Wind className="h-4 w-4 text-success" />
+            <CardTitle>Wind Forecast</CardTitle>
+          </div>
+          <TimestampBadge timestamp={latestTime} />
         </div>
         <CardDescription>
-          {windData?.count
-            ? `${formatNumber(windData.count)} records`
-            : "Loading..."}
+          {windData?.count ? `${formatNumber(windData.count)} records` : "Loading..."}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {/* Filters */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div>
-            <label 
-              className="block text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Resolution
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-xs">Resolution</span>
             </label>
             <select
               value={resolution}
               onChange={(e) => setResolution(e.target.value as Resolution)}
-              className="w-full px-3 py-2 text-sm border"
+              className="select select-bordered select-sm w-full"
             >
               <option value="hourly">Hourly</option>
               <option value="5min">5-Minute</option>
             </select>
           </div>
-          <div>
-            <label 
-              className="block text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Date
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-xs">Date</span>
             </label>
             <select
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border"
+              className="select select-bordered select-sm w-full"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
             </select>
           </div>
-          <div className="flex items-end pb-1">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="form-control">
+            <label className="label cursor-pointer justify-start gap-2">
               <input
                 type="checkbox"
                 checked={byRegion}
                 onChange={(e) => setByRegion(e.target.checked)}
-                className="w-4 h-4"
-                style={{ accentColor: 'var(--accent-cyan)' }}
+                className="checkbox checkbox-sm checkbox-primary"
               />
-              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                By Region
-              </span>
+              <span className="label-text text-xs">By Region</span>
             </label>
           </div>
         </div>
@@ -262,59 +255,31 @@ function WindForecastCard() {
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="var(--border-primary)"
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="hour" 
-                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-                  axisLine={{ stroke: 'var(--border-primary)' }}
-                  tickLine={{ stroke: 'var(--border-primary)' }}
-                />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
+                <XAxis dataKey="hour" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis
-                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                  tick={{ fontSize: 10 }}
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                  axisLine={{ stroke: 'var(--border-primary)' }}
-                  tickLine={{ stroke: 'var(--border-primary)' }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip 
                   formatter={(value) => formatMW(Number(value ?? 0))}
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--border-secondary)',
-                    borderRadius: 0,
-                    fontSize: 12,
-                  }}
-                  labelStyle={{ color: 'var(--text-primary)' }}
+                  contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
+                  labelStyle={{ color: 'oklch(var(--bc))' }}
+                  itemStyle={{ color: 'oklch(var(--bc))' }}
                 />
                 <Legend 
                   wrapperStyle={{ fontSize: 10 }}
-                  formatter={(value) => <span style={{ color: 'var(--text-secondary)' }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: 'oklch(var(--bc))' }}>{value}</span>}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  stroke="var(--status-normal)"
-                  strokeWidth={2}
-                  dot={false}
-                  name="Actual (MW)"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="forecast"
-                  stroke="var(--text-muted)"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={false}
-                  name="Forecast (MW)"
-                />
+                <Line type="monotone" dataKey="actual" stroke="oklch(var(--su))" strokeWidth={2} dot={false} name="Actual (MW)" />
+                <Line type="monotone" dataKey="forecast" stroke="oklch(var(--bc) / 0.5)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast (MW)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-center py-8 text-sm text-base-content/50">
             No wind forecast data available
           </p>
         )}
@@ -334,8 +299,6 @@ function SolarForecastCard() {
     by_region: byRegion,
   });
 
-  // Process data for display
-  // API returns: Time, End Time, Posted, Generation System Wide, STPPF System Wide, etc.
   const chartData = solarData?.data
     ? solarData.data.slice(0, 100).map((record, idx) => ({
         index: idx,
@@ -346,66 +309,61 @@ function SolarForecastCard() {
       }))
     : [];
 
+  // Get latest timestamp
+  const latestTime = solarData?.data?.[solarData.data.length - 1]?.["Time"] as string | undefined;
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Sun className="h-4 w-4" style={{ color: 'var(--accent-yellow)' }} />
-          <CardTitle>Solar Forecast</CardTitle>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <Sun className="h-4 w-4 text-warning" />
+            <CardTitle>Solar Forecast</CardTitle>
+          </div>
+          <TimestampBadge timestamp={latestTime} />
         </div>
         <CardDescription>
-          {solarData?.count
-            ? `${formatNumber(solarData.count)} records`
-            : "Loading..."}
+          {solarData?.count ? `${formatNumber(solarData.count)} records` : "Loading..."}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {/* Filters */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div>
-            <label 
-              className="block text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Resolution
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-xs">Resolution</span>
             </label>
             <select
               value={resolution}
               onChange={(e) => setResolution(e.target.value as Resolution)}
-              className="w-full px-3 py-2 text-sm border"
+              className="select select-bordered select-sm w-full"
             >
               <option value="hourly">Hourly</option>
               <option value="5min">5-Minute</option>
             </select>
           </div>
-          <div>
-            <label 
-              className="block text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Date
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-xs">Date</span>
             </label>
             <select
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border"
+              className="select select-bordered select-sm w-full"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
             </select>
           </div>
-          <div className="flex items-end pb-1">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="form-control">
+            <label className="label cursor-pointer justify-start gap-2">
               <input
                 type="checkbox"
                 checked={byRegion}
                 onChange={(e) => setByRegion(e.target.checked)}
-                className="w-4 h-4"
-                style={{ accentColor: 'var(--accent-cyan)' }}
+                className="checkbox checkbox-sm checkbox-primary"
               />
-              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                By Region
-              </span>
+              <span className="label-text text-xs">By Region</span>
             </label>
           </div>
         </div>
@@ -421,59 +379,31 @@ function SolarForecastCard() {
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="var(--border-primary)"
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="hour" 
-                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-                  axisLine={{ stroke: 'var(--border-primary)' }}
-                  tickLine={{ stroke: 'var(--border-primary)' }}
-                />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" vertical={false} />
+                <XAxis dataKey="hour" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis
-                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                  tick={{ fontSize: 10 }}
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                  axisLine={{ stroke: 'var(--border-primary)' }}
-                  tickLine={{ stroke: 'var(--border-primary)' }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip 
                   formatter={(value) => formatMW(Number(value ?? 0))}
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--border-secondary)',
-                    borderRadius: 0,
-                    fontSize: 12,
-                  }}
-                  labelStyle={{ color: 'var(--text-primary)' }}
+                  contentStyle={{ backgroundColor: 'oklch(var(--b2))', border: '1px solid oklch(var(--b3))', borderRadius: '0.5rem' }}
+                  labelStyle={{ color: 'oklch(var(--bc))' }}
+                  itemStyle={{ color: 'oklch(var(--bc))' }}
                 />
                 <Legend 
                   wrapperStyle={{ fontSize: 10 }}
-                  formatter={(value) => <span style={{ color: 'var(--text-secondary)' }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: 'oklch(var(--bc))' }}>{value}</span>}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  stroke="var(--accent-yellow)"
-                  strokeWidth={2}
-                  dot={false}
-                  name="Actual (MW)"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="forecast"
-                  stroke="var(--text-muted)"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={false}
-                  name="Forecast (MW)"
-                />
+                <Line type="monotone" dataKey="actual" stroke="oklch(var(--wa))" strokeWidth={2} dot={false} name="Actual (MW)" />
+                <Line type="monotone" dataKey="forecast" stroke="oklch(var(--bc) / 0.5)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast (MW)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-center py-8 text-sm text-base-content/50">
             No solar forecast data available
           </p>
         )}
@@ -485,21 +415,9 @@ function SolarForecastCard() {
 export function Forecasts() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 
-            className="text-xl font-bold tracking-wide"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Load & Renewable Forecasts
-          </h1>
-          <p 
-            className="text-xs mt-1"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            System load and renewable generation data
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Load & Renewable Forecasts</h1>
+        <p className="text-sm text-base-content/60">System load and renewable generation data</p>
       </div>
 
       <LoadCard />

@@ -6,6 +6,7 @@ import {
   historicalAPI,
   type SPPParams,
   type LMPParams,
+  type LMPCombinedParams,
   type LoadParams,
   type LoadForecastParams,
   type WindSolarParams,
@@ -26,6 +27,15 @@ export function useFuelMix() {
   return useQuery({
     queryKey: ["fuel-mix"],
     queryFn: dashboardAPI.getFuelMix,
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+}
+
+export function useFuelMixRealtime() {
+  return useQuery({
+    queryKey: ["fuel-mix-realtime"],
+    queryFn: dashboardAPI.getFuelMixRealtime,
     refetchInterval: 60000,
     staleTime: 30000,
   });
@@ -71,6 +81,15 @@ export function useDailyPrices() {
     queryKey: ["daily-prices"],
     queryFn: pricesAPI.getDailyPrices,
     staleTime: 60000,
+  });
+}
+
+export function useLMPCombined(params?: LMPCombinedParams) {
+  return useQuery({
+    queryKey: ["lmp-combined", params],
+    queryFn: () => pricesAPI.getLMPCombined(params),
+    staleTime: 30000,  // Refresh more often for real-time data
+    refetchInterval: 60000,  // Auto-refresh every minute
   });
 }
 

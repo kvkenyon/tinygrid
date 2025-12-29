@@ -1,51 +1,21 @@
-import { cn } from "../lib/utils";
-
 interface LoadingProps {
   className?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
+  text?: string;
 }
 
-export function Loading({ className, size = "md" }: LoadingProps) {
-  const sizeClasses = {
-    sm: "h-4 w-4",
-    md: "h-6 w-6",
-    lg: "h-10 w-10",
-  };
+export function Loading({ className = "", size = "md", text }: LoadingProps) {
+  const sizeClass = {
+    xs: "loading-xs",
+    sm: "loading-sm",
+    md: "loading-md",
+    lg: "loading-lg",
+  }[size];
 
   return (
-    <div className={cn("flex items-center justify-center", className)}>
-      <div
-        className={cn("animate-spin", sizeClasses[size])}
-        style={{
-          border: "2px solid var(--border-secondary)",
-          borderTopColor: "var(--accent-cyan)",
-          borderRadius: "50%",
-        }}
-      />
-    </div>
-  );
-}
-
-export function LoadingCard() {
-  return (
-    <div className="flex items-center justify-center p-8">
-      <Loading size="lg" />
-    </div>
-  );
-}
-
-export function LoadingPage() {
-  return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="text-center">
-        <Loading size="lg" className="mb-4" />
-        <p 
-          className="text-xs tracking-wide uppercase"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Loading data...
-        </p>
-      </div>
+    <div className={`flex flex-col items-center justify-center gap-2 p-8 ${className}`}>
+      <span className={`loading loading-spinner ${sizeClass} text-primary`}></span>
+      {text && <span className="text-sm text-base-content/60">{text}</span>}
     </div>
   );
 }

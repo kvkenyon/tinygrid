@@ -1,151 +1,130 @@
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "../lib/utils";
+import { useTheme } from "../context/ThemeContext";
 import {
   LayoutDashboard,
   DollarSign,
   TrendingUp,
   Database,
-  Activity,
+  ChevronLeft,
   ChevronRight,
+  Zap,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const navItems = [
-  { 
-    path: "/", 
-    label: "Dashboard", 
+  {
+    path: "/",
+    label: "Dashboard",
     icon: LayoutDashboard,
-    description: "Grid overview"
   },
-  { 
-    path: "/prices", 
-    label: "Prices", 
+  {
+    path: "/prices",
+    label: "Prices",
     icon: DollarSign,
-    description: "SPP & LMP data"
   },
-  { 
-    path: "/forecasts", 
-    label: "Forecasts", 
+  {
+    path: "/forecasts",
+    label: "Forecasts",
     icon: TrendingUp,
-    description: "Load & renewables"
   },
-  { 
-    path: "/historical", 
-    label: "Historical", 
+  {
+    path: "/historical",
+    label: "Historical",
     icon: Database,
-    description: "Archive data"
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <aside 
-      className="fixed left-0 top-0 h-screen w-56 border-r flex flex-col"
-      style={{ 
-        backgroundColor: 'var(--bg-secondary)',
-        borderColor: 'var(--border-primary)'
-      }}
+    <aside
+      className={`fixed left-0 top-0 h-screen bg-base-200 border-r border-base-300 flex flex-col transition-all duration-300 z-50 ${
+        collapsed ? "w-16" : "w-56"
+      }`}
     >
       {/* Logo */}
-      <div 
-        className="h-14 flex items-center gap-3 px-4 border-b"
-        style={{ borderColor: 'var(--border-primary)' }}
-      >
-        <div 
-          className="flex items-center justify-center w-8 h-8"
-          style={{ backgroundColor: 'var(--accent-cyan)' }}
-        >
-          <Activity className="h-5 w-5 text-black" />
+      <div className="h-16 flex items-center gap-3 px-4 border-b border-base-300">
+        <div className="btn btn-square btn-primary btn-sm">
+          <Zap className="h-4 w-4" />
         </div>
-        <div className="flex flex-col">
-          <span 
-            className="text-sm font-bold tracking-wider"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            TINYGRID
-          </span>
-          <span 
-            className="text-[9px] tracking-widest"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ERCOT TERMINAL
-          </span>
-        </div>
+        {!collapsed && (
+          <div className="flex flex-col sidebar-logo-text">
+            <span className="text-sm font-bold">TinyGrid</span>
+            <span className="text-xs text-base-content/50">Grid Analytics</span>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2">
-        <div className="space-y-1">
-          {navItems.map(({ path, label, icon: Icon, description }) => {
+      <nav className="flex-1 py-4">
+        <ul className="menu menu-sm gap-1 px-2">
+          {navItems.map(({ path, label, icon: Icon }) => {
             const isActive = location.pathname === path;
             return (
-              <Link
-                key={path}
-                to={path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 transition-all group",
-                  isActive && "border-l-2"
-                )}
-                style={{
-                  backgroundColor: isActive ? 'var(--bg-tertiary)' : 'transparent',
-                  borderColor: isActive ? 'var(--accent-cyan)' : 'transparent',
-                }}
-              >
-                <Icon 
-                  className="h-4 w-4 flex-shrink-0" 
-                  style={{ color: isActive ? 'var(--accent-cyan)' : 'var(--text-muted)' }}
-                />
-                <div className="flex-1 min-w-0">
-                  <span 
-                    className="text-sm font-medium block"
-                    style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                  >
-                    {label}
-                  </span>
-                  <span 
-                    className="text-[10px] block truncate"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    {description}
-                  </span>
-                </div>
-                {isActive && (
-                  <ChevronRight 
-                    className="h-3 w-3 flex-shrink-0" 
-                    style={{ color: 'var(--accent-cyan)' }}
-                  />
-                )}
-              </Link>
+              <li key={path}>
+                <Link
+                  to={path}
+                  className={isActive ? "active" : ""}
+                  data-tip={collapsed ? label : undefined}
+                >
+                  <Icon className="h-4 w-4" />
+                  {!collapsed && <span className="sidebar-text">{label}</span>}
+                </Link>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </nav>
 
-      {/* Status */}
-      <div 
-        className="px-4 py-3 border-t"
-        style={{ borderColor: 'var(--border-primary)' }}
-      >
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-2 h-2 rounded-full animate-pulse"
-            style={{ backgroundColor: 'var(--status-normal)' }}
-          />
-          <span 
-            className="text-[10px] tracking-widest"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            CONNECTED
-          </span>
-        </div>
-        <div 
-          className="text-[9px] mt-1 font-mono"
-          style={{ color: 'var(--text-muted)' }}
+      {/* Theme toggle */}
+      <div className="px-2 py-2 border-t border-base-300">
+        <button
+          onClick={toggleTheme}
+          className={`btn btn-ghost btn-sm w-full ${collapsed ? "btn-square" : "justify-start"}`}
+          data-tip={collapsed ? (theme === "dark" ? "Light mode" : "Dark mode") : undefined}
         >
-          api.ercot.com
+          {theme === "dark" ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+          {!collapsed && (
+            <span className="sidebar-text">
+              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Status indicator */}
+      <div className="px-4 py-3 border-t border-base-300">
+        <div className="flex items-center gap-2">
+          <span className="badge badge-success badge-xs"></span>
+          {!collapsed && (
+            <span className="text-xs text-base-content/50 sidebar-text">Connected</span>
+          )}
         </div>
       </div>
+
+      {/* Collapse toggle */}
+      <button
+        onClick={onToggle}
+        className="btn btn-ghost btn-sm absolute -right-3 top-20 bg-base-200 border border-base-300 rounded-full w-6 h-6 p-0 min-h-0"
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3 w-3" />
+        ) : (
+          <ChevronLeft className="h-3 w-3" />
+        )}
+      </button>
     </aside>
   );
 }

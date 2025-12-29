@@ -34,66 +34,44 @@ function EndpointSelector({
   return (
     <div className="space-y-3">
       {/* Search */}
-      <div className="relative">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
-          style={{ color: 'var(--text-muted)' }}
-        />
-        <input
-          type="text"
-          placeholder="Search endpoints..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 text-sm border"
-          style={{
-            backgroundColor: 'var(--bg-tertiary)',
-            borderColor: 'var(--border-primary)',
-            color: 'var(--text-primary)',
-          }}
-        />
+      <div className="form-control">
+        <label className="input input-bordered input-sm flex items-center gap-2">
+          <Search className="h-4 w-4 opacity-50" />
+          <input
+            type="text"
+            placeholder="Search endpoints..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="grow"
+          />
+        </label>
       </div>
 
       {/* Endpoint List */}
-      <div
-        className="max-h-64 overflow-y-auto border"
-        style={{ borderColor: 'var(--border-primary)' }}
-      >
+      <div className="max-h-64 overflow-y-auto border border-base-300 rounded-lg">
         {filteredEndpoints.map((ep) => (
           <button
             key={ep.name}
             onClick={() => onSelect(ep.name)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all border-b last:border-b-0"
-            style={{
-              backgroundColor: selected === ep.name ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
-              borderColor: 'var(--border-primary)',
-            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all border-b border-base-300 last:border-b-0 hover:bg-base-300 ${
+              selected === ep.name ? "bg-base-300" : ""
+            }`}
           >
-            <FileText
-              className="h-4 w-4 flex-shrink-0"
-              style={{ color: selected === ep.name ? 'var(--accent-cyan)' : 'var(--text-muted)' }}
-            />
+            <FileText className={`h-4 w-4 flex-shrink-0 ${selected === ep.name ? "text-primary" : "opacity-50"}`} />
             <div className="flex-1 min-w-0">
-              <div
-                className="text-sm font-medium truncate"
-                style={{ color: selected === ep.name ? 'var(--accent-cyan)' : 'var(--text-primary)' }}
-              >
+              <div className={`text-sm font-medium truncate ${selected === ep.name ? "text-primary" : ""}`}>
                 {ep.name.replace(/_/g, " ")}
               </div>
-              <div
-                className="text-[10px] truncate"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <div className="text-xs truncate text-base-content/50">
                 {ep.description}
               </div>
             </div>
-            {selected === ep.name && (
-              <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--accent-cyan)' }} />
-            )}
+            {selected === ep.name && <ChevronRight className="h-4 w-4 flex-shrink-0 text-primary" />}
           </button>
         ))}
         {filteredEndpoints.length === 0 && (
           <div className="px-4 py-8 text-center">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No endpoints found</p>
+            <p className="text-sm text-base-content/50">No endpoints found</p>
           </div>
         )}
       </div>
@@ -112,11 +90,10 @@ function DateRangePicker({
   onStartChange: (date: string) => void;
   onEndChange: (date: string) => void;
 }) {
-  // Quick date presets
   const presets = [
-    { label: "Last 7 days", days: 7 },
-    { label: "Last 30 days", days: 30 },
-    { label: "Last 90 days", days: 90 },
+    { label: "7 days", days: 7 },
+    { label: "30 days", days: 30 },
+    { label: "90 days", days: 90 },
   ];
 
   const applyPreset = (days: number) => {
@@ -135,12 +112,7 @@ function DateRangePicker({
           <button
             key={days}
             onClick={() => applyPreset(days)}
-            className="px-3 py-1.5 text-xs border transition-colors"
-            style={{
-              borderColor: 'var(--border-secondary)',
-              color: 'var(--text-secondary)',
-              backgroundColor: 'var(--bg-tertiary)',
-            }}
+            className="btn btn-xs btn-outline"
           >
             {label}
           </button>
@@ -149,55 +121,33 @@ function DateRangePicker({
 
       {/* Date Inputs */}
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label
-            className="block text-[10px] tracking-widest uppercase mb-1.5"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Start Date
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text text-xs">Start Date</span>
           </label>
-          <div className="relative">
-            <Calendar
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
-              style={{ color: 'var(--text-muted)' }}
-            />
+          <label className="input input-bordered input-sm flex items-center gap-2">
+            <Calendar className="h-4 w-4 opacity-50" />
             <input
               type="date"
               value={startDate}
               onChange={(e) => onStartChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm border"
-              style={{
-                backgroundColor: 'var(--bg-tertiary)',
-                borderColor: 'var(--border-primary)',
-                color: 'var(--text-primary)',
-              }}
+              className="grow"
             />
-          </div>
-        </div>
-        <div>
-          <label
-            className="block text-[10px] tracking-widest uppercase mb-1.5"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            End Date
           </label>
-          <div className="relative">
-            <Calendar
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
-              style={{ color: 'var(--text-muted)' }}
-            />
+        </div>
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text text-xs">End Date</span>
+          </label>
+          <label className="input input-bordered input-sm flex items-center gap-2">
+            <Calendar className="h-4 w-4 opacity-50" />
             <input
               type="date"
               value={endDate}
               onChange={(e) => onEndChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm border"
-              style={{
-                backgroundColor: 'var(--bg-tertiary)',
-                borderColor: 'var(--border-primary)',
-                color: 'var(--text-primary)',
-              }}
+              className="grow"
             />
-          </div>
+          </label>
         </div>
       </div>
     </div>
@@ -216,52 +166,24 @@ function DataTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="table table-xs">
         <thead>
-          <tr style={{ borderBottom: '2px solid var(--border-primary)' }}>
+          <tr>
             {displayColumns.map((col) => (
-              <th
-                key={col}
-                className="text-left px-3 py-2 text-[10px] tracking-widest uppercase whitespace-nowrap"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {col}
-              </th>
+              <th key={col} className="whitespace-nowrap">{col}</th>
             ))}
-            {hasMore && (
-              <th
-                className="text-left px-3 py-2 text-[10px]"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                +{columns.length - 6}
-              </th>
-            )}
+            {hasMore && <th className="text-base-content/50">+{columns.length - 6}</th>}
           </tr>
         </thead>
         <tbody>
           {data.slice(0, 100).map((row, idx) => (
-            <tr
-              key={idx}
-              className="transition-colors hover:bg-[var(--bg-tertiary)]"
-              style={{ borderBottom: '1px solid var(--border-primary)' }}
-            >
+            <tr key={idx} className="hover">
               {displayColumns.map((col) => (
-                <td
-                  key={col}
-                  className="px-3 py-2 text-sm font-mono whitespace-nowrap"
-                  style={{ color: 'var(--text-primary)' }}
-                >
+                <td key={col} className="font-mono whitespace-nowrap">
                   {String(row[col] ?? "—")}
                 </td>
               ))}
-              {hasMore && (
-                <td
-                  className="px-3 py-2 text-sm"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  ...
-                </td>
-              )}
+              {hasMore && <td className="text-base-content/50">...</td>}
             </tr>
           ))}
         </tbody>
@@ -342,18 +264,8 @@ export function Historical() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1
-          className="text-xl font-bold tracking-wide"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          Historical Data
-        </h1>
-        <p
-          className="text-xs mt-1"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Query ERCOT archive data (90+ days)
-        </p>
+        <h1 className="text-2xl font-bold">Historical Data</h1>
+        <p className="text-sm text-base-content/60">Query archive data (90+ days)</p>
       </div>
 
       {endpointsLoading ? (
@@ -363,12 +275,12 @@ export function Historical() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Panel - Query Builder */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4">
             {/* Endpoint Selection */}
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4" style={{ color: 'var(--accent-cyan)' }} />
+                  <Database className="h-4 w-4 text-primary" />
                   <CardTitle>Select Endpoint</CardTitle>
                 </div>
               </CardHeader>
@@ -386,9 +298,9 @@ export function Historical() {
 
             {/* Date Range */}
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" style={{ color: 'var(--accent-orange)' }} />
+                  <Calendar className="h-4 w-4 text-warning" />
                   <CardTitle>Date Range</CardTitle>
                 </div>
               </CardHeader>
@@ -406,11 +318,7 @@ export function Historical() {
             <button
               onClick={handleFetch}
               disabled={!canFetch}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium tracking-wide uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: canFetch ? 'var(--accent-cyan)' : 'var(--bg-tertiary)',
-                color: canFetch ? 'var(--bg-primary)' : 'var(--text-muted)',
-              }}
+              className="btn btn-primary w-full"
             >
               <Search className="h-4 w-4" />
               Fetch Data
@@ -420,28 +328,18 @@ export function Historical() {
           {/* Right Panel - Results */}
           <div className="lg:col-span-2">
             <Card className="h-full">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
+              <CardHeader>
+                <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" style={{ color: 'var(--status-normal)' }} />
+                    <FileText className="h-4 w-4 text-success" />
                     <CardTitle>Results</CardTitle>
                   </div>
                   {historicalData && (
                     <div className="flex items-center gap-3">
-                      <span
-                        className="text-xs font-mono"
-                        style={{ color: 'var(--accent-cyan)' }}
-                      >
+                      <span className="badge badge-primary badge-outline">
                         {formatNumber(historicalData.count)} records
                       </span>
-                      <button
-                        onClick={handleExport}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs border transition-colors"
-                        style={{
-                          borderColor: 'var(--border-secondary)',
-                          color: 'var(--text-secondary)',
-                        }}
-                      >
+                      <button onClick={handleExport} className="btn btn-xs btn-ghost">
                         <Download className="h-3 w-3" />
                         CSV
                       </button>
@@ -452,14 +350,8 @@ export function Historical() {
               <CardContent>
                 {!shouldFetch ? (
                   <div className="flex flex-col items-center justify-center py-16">
-                    <Database
-                      className="h-12 w-12 mb-4"
-                      style={{ color: 'var(--border-secondary)' }}
-                    />
-                    <p
-                      className="text-sm text-center"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
+                    <Database className="h-12 w-12 mb-4 opacity-20" />
+                    <p className="text-sm text-center text-base-content/50">
                       Select an endpoint and date range,<br />then click Fetch Data
                     </p>
                   </div>
@@ -476,23 +368,14 @@ export function Historical() {
                   <>
                     <DataTable data={historicalData.data} columns={columns} />
                     {historicalData.data.length > 100 && (
-                      <p
-                        className="text-center text-xs py-3 border-t"
-                        style={{
-                          color: 'var(--text-muted)',
-                          borderColor: 'var(--border-primary)'
-                        }}
-                      >
+                      <p className="text-center text-xs py-3 border-t border-base-300 text-base-content/50">
                         Showing 100 of {formatNumber(historicalData.data.length)} records • Export for full data
                       </p>
                     )}
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16">
-                    <p
-                      className="text-sm"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
+                    <p className="text-sm text-base-content/50">
                       No data found for the selected range
                     </p>
                   </div>
