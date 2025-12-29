@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* DaisyUI dark theme customization */
+@theme {
+  /* Chart colors */
+  --color-chart-1: #3b82f6;
+  --color-chart-2: #22c55e;
+  --color-chart-3: #f97316;
+  --color-chart-4: #eab308;
+  --color-chart-5: #a855f7;
+  --color-chart-6: #ec4899;
+  --color-chart-7: #14b8a6;
+  --color-chart-8: #6366f1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(var(--b2));
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--b3));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--bc) / 0.3);
+}
+
+/* Recharts overrides for theme compatibility */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: oklch(var(--b3));
+}
+
+.recharts-text,
+.recharts-cartesian-axis-tick-value {
+  fill: oklch(var(--bc) / 0.7) !important;
+}
+
+.recharts-legend-item-text {
+  color: oklch(var(--bc)) !important;
+}
+
+.recharts-legend-wrapper {
+  color: oklch(var(--bc)) !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: oklch(var(--b2)) !important;
+  border: 1px solid oklch(var(--b3)) !important;
+  border-radius: 0.5rem;
+}
+
+.recharts-tooltip-label {
+  color: oklch(var(--bc)) !important;
+}
+
+.recharts-tooltip-item {
+  color: oklch(var(--bc)) !important;
+}
+
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value {
+  color: oklch(var(--bc)) !important;
+}
+
+/* Sidebar transition */
+.sidebar-collapsed {
+  width: 4rem !important;
+}
+
+.sidebar-collapsed .sidebar-text {
+  display: none;
+}
+
+.sidebar-collapsed .sidebar-logo-text {
+  display: none;
+}

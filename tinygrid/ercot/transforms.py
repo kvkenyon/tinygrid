@@ -15,6 +15,7 @@ import pandas as pd
 
 from ..constants.ercot import (
     COLUMN_MAPPINGS,
+    DC_TIES,
     ERCOT_TIMEZONE,
     LOAD_ZONES,
     TRADING_HUBS,
@@ -82,13 +83,17 @@ def filter_by_location(
                 allowed.update(LOAD_ZONES)
             elif lt == LocationType.TRADING_HUB:
                 allowed.update(TRADING_HUBS)
+            elif lt == LocationType.DC_TIE:
+                allowed.update(DC_TIES)
             elif lt == LocationType.RESOURCE_NODE:
                 exclude_mode = True
 
         if exclude_mode and not allowed:
-            # Only RESOURCE_NODE requested - exclude zones and hubs
+            # Only RESOURCE_NODE requested - exclude zones, hubs, and DC ties
             filtered = df[
-                ~df[loc_col].isin(LOAD_ZONES) & ~df[loc_col].isin(TRADING_HUBS)
+                ~df[loc_col].isin(LOAD_ZONES)
+                & ~df[loc_col].isin(TRADING_HUBS)
+                & ~df[loc_col].isin(DC_TIES)
             ]
             assert isinstance(filtered, pd.DataFrame)
             df = filtered

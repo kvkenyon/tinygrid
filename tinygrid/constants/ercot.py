@@ -91,6 +91,7 @@ class LocationType(StrEnum):
 
     LOAD_ZONE = "Load Zone"
     TRADING_HUB = "Trading Hub"
+    DC_TIE = "DC Tie"
     RESOURCE_NODE = "Resource Node"
     ELECTRICAL_BUS = "Electrical Bus"
 
@@ -124,6 +125,15 @@ TRADING_HUBS = [
     "HB_BUSAVG",
     "HB_HUBAVG",
     "HB_PAN",
+]
+
+# ERCOT DC Ties (interconnections with other grids)
+DC_TIES = [
+    "DC_E",  # East DC Tie (to SPP)
+    "DC_L",  # Laredo DC Tie (to Mexico - CFE)
+    "DC_N",  # North DC Tie (to SPP)
+    "DC_R",  # Railroad DC Tie (to Mexico - CFE)
+    "DC_S",  # South DC Tie (to Mexico - CFE)
 ]
 
 # Endpoint mappings for unified methods

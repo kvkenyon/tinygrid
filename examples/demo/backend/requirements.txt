@@ -1,0 +1,11 @@
+# FastAPI backend dependencies
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+pytz>=2024.1
+
+# TinyGrid SDK (installed from parent directory)
+# tinygrid is expected to be installed in the environment
+
+# CORS and other utilities
+python-multipart>=0.0.6

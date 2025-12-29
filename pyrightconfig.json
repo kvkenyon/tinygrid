@@ -21,7 +21,8 @@
     "minio-data/**",
     "public/**",
     "static-files/**",
-    "pyercot/**"
+    "pyercot/**",
+    "examples/demo/**"
   ],
   "pythonPlatform": "Linux",
   "pythonVersion": "3.13",
