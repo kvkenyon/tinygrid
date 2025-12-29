@@ -54,6 +54,50 @@ as_prices = ercot.get_as_prices(start="2024-01-15")
 as_plan = ercot.get_as_plan(start="2024-01-15")
 ```
 
+### Real-Time Grid Data
+
+Access real-time grid data using the unified API:
+
+```python
+from tinygrid import ERCOT
+
+ercot = ERCOT()
+
+# Get actual system load by weather zone
+load = ercot.get_load(start="today", by="weather_zone")
+
+# Get wind generation forecast
+wind = ercot.get_wind_forecast(start="today")
+
+# Get solar generation forecast  
+solar = ercot.get_solar_forecast(start="today")
+
+# Get load forecast
+load_forecast = ercot.get_load_forecast_by_weather_zone(
+    start_date="2024-12-28",
+    end_date="2024-12-29",
+)
+```
+
+### Historical Yearly Data
+
+Access complete yearly historical data from ERCOT's MIS document system:
+
+```python
+from tinygrid import ERCOT
+
+ercot = ERCOT()
+
+# Get full year of RTM settlement point prices
+rtm_2023 = ercot.get_rtm_spp_historical(2023)
+
+# Get full year of DAM settlement point prices
+dam_2023 = ercot.get_dam_spp_historical(2023)
+
+# Get settlement point mapping
+mapping = ercot.get_settlement_point_mapping()
+```
+
 ### Direct Endpoint Access
 
 For full control, call any of the 100+ ERCOT endpoints directly:
@@ -84,11 +128,13 @@ forecast = ercot.get_load_forecast_by_weather_zone(
 )
 ```
 
-See [`examples/ercot_example.py`](examples/ercot_example.py) for complete examples.
+See [`examples/ercot_demo.ipynb`](examples/ercot_demo.ipynb) for complete examples.
 
 ## Unified API Methods
 
 These methods provide a simpler interface with automatic routing, date parsing, and historical data access:
+
+### Pricing Methods
 
 | Method | Description | Markets |
 |--------|-------------|---------|
@@ -96,8 +142,33 @@ These methods provide a simpler interface with automatic routing, date parsing, 
 | `get_lmp()` | Locational Marginal Prices | Real-time SCED, Day-ahead hourly |
 | `get_as_prices()` | Ancillary Services MCPC prices | Day-ahead |
 | `get_as_plan()` | Ancillary Services plan | Day-ahead |
-| `get_wind_forecast()` | Wind power forecast | System-wide or by region |
-| `get_solar_forecast()` | Solar power forecast | System-wide or by region |
+| `get_shadow_prices()` | Transmission constraint shadow prices | Real-time SCED, Day-ahead |
+
+### Forecast Methods
+
+| Method | Description |
+|--------|-------------|
+| `get_wind_forecast()` | Wind power forecast (system-wide or by region) |
+| `get_solar_forecast()` | Solar power forecast (system-wide or by region) |
+| `get_load()` | Actual system load by weather or forecast zone |
+
+### Direct Endpoint Methods
+
+For full control, 100+ low-level endpoint methods are available:
+
+| Category | Example Methods |
+|----------|----------------|
+| Load | `get_actual_system_load_by_weather_zone()`, `get_load_forecast_by_weather_zone()` |
+| Generation | `get_generation_by_resource_type()`, `get_wpp_hourly_average_actual_forecast()` |
+| Pricing | `get_dam_settlement_point_prices()`, `get_spp_node_zone_hub()` |
+
+### Historical Yearly Methods
+
+| Method | Description |
+|--------|-------------|
+| `get_rtm_spp_historical(year)` | Full year RTM settlement point prices |
+| `get_dam_spp_historical(year)` | Full year DAM settlement point prices |
+| `get_settlement_point_mapping()` | Settlement point to bus mapping |
 
 ### Features
 
@@ -114,6 +185,8 @@ Authentication is required for some endpoints. To get credentials:
 1. Register at [ERCOT API Explorer](https://apiexplorer.ercot.com/)
 2. Subscribe to the API products you need
 3. Use your email, password, and subscription key
+
+**Note:** Dashboard methods (`get_status()`, `get_fuel_mix()`, etc.) do not require authentication.
 
 ## Available ERCOT Endpoints
 
@@ -171,15 +244,23 @@ except GridTimeoutError as e:
 
 ```
 tinygrid/
-├── tinygrid/           # SDK layer
-│   ├── ercot.py        # ERCOT client with unified and direct API methods
-│   ├── auth/           # Authentication handling
-│   ├── constants/      # Market types, location enums, endpoint mappings
-│   ├── utils/          # Date parsing, timezone handling, decorators
-│   └── errors.py       # Error types
-├── pyercot/            # Auto-generated ERCOT API client (from OpenAPI spec)
-├── examples/           # Usage examples
-└── tests/              # Test suite (258 tests)
+├── tinygrid/              # SDK layer
+│   ├── ercot/             # ERCOT client package
+│   │   ├── __init__.py    # Main ERCOT class (combining mixins)
+│   │   ├── client.py      # ERCOTBase with auth, retry, pagination
+│   │   ├── endpoints.py   # Low-level pyercot wrappers (~100 methods)
+│   │   ├── api.py         # High-level unified API methods
+│   │   ├── archive.py     # Historical archive access
+│   │   ├── dashboard.py   # Public dashboard methods (no auth)
+│   │   ├── documents.py   # MIS document fetching
+│   │   └── transforms.py  # Data filtering/transformation utilities
+│   ├── auth/              # Authentication handling
+│   ├── constants/         # Market types, location enums, endpoint mappings
+│   ├── utils/             # Date parsing, timezone handling, decorators
+│   └── errors.py          # Error types
+├── pyercot/               # Auto-generated ERCOT API client (from OpenAPI spec)
+├── examples/              # Usage examples
+└── tests/                 # Test suite (505 tests)
 ```
 
 ## Development

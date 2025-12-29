@@ -24,6 +24,19 @@ logger = logging.getLogger(__name__)
 MIS_BASE_URL = "https://www.ercot.com/misapp/servlets/IceDocListJsonWS"
 DOWNLOAD_BASE_URL = "https://www.ercot.com/misdownload/servlets/mirDownload"
 
+
+def build_download_url(doc_id: str) -> str:
+    """Build the download URL for a document.
+
+    Args:
+        doc_id: The document ID from MIS
+
+    Returns:
+        Full download URL
+    """
+    return f"{DOWNLOAD_BASE_URL}?doclookupId={doc_id}"
+
+
 # Report Type IDs for various ERCOT reports
 # See: https://www.ercot.com/services/comm/mkt_notices/archives
 REPORT_TYPE_IDS = {
@@ -66,17 +79,25 @@ class Document:
         friendly_name = doc.get("FriendlyName", "")
         friendly_ts = parse_timestamp_from_friendly_name(friendly_name)
 
+        # Get or construct download URL
+        doc_id = doc.get("DocID", "")
+        url = doc.get("DownloadLink", "")
+        if not url and doc_id:
+            url = build_download_url(doc_id)
+
         return cls(
-            url=doc.get("DownloadLink", ""),
+            url=url,
             publish_date=publish_date,
-            doc_id=doc.get("DocID", ""),
+            doc_id=doc_id,
             constructed_name=doc.get("ConstructedName", ""),
             friendly_name=friendly_name,
             friendly_name_timestamp=friendly_ts,
         )
 
 
-def parse_timestamp_from_friendly_name(friendly_name: str) -> pd.Timestamp | None:
+def parse_timestamp_from_friendly_name(
+    friendly_name: str,
+) -> pd.Timestamp | None:
     """Parse timestamp from friendly name like '202401' or '2024-01-01'.
 
     Args:
@@ -205,7 +226,7 @@ class ERCOTDocumentsMixin:
     ) -> pd.DataFrame:
         """Download and read a document from MIS.
 
-        Supports CSV and Excel files.
+        Supports CSV, Excel, and ZIP files containing CSV or Excel.
 
         Args:
             doc: The Document to download
@@ -214,8 +235,10 @@ class ERCOTDocumentsMixin:
         Returns:
             DataFrame with document contents
         """
+        import zipfile
+
         try:
-            with httpx.Client(timeout=60.0) as client:
+            with httpx.Client(timeout=120.0) as client:
                 response = client.get(doc.url)
                 response.raise_for_status()
                 content = response.content
@@ -223,34 +246,70 @@ class ERCOTDocumentsMixin:
             logger.error(f"Failed to download document {doc.doc_id}: {e}")
             return pd.DataFrame()
 
-        # Determine file type from URL or content
-        url_lower = doc.url.lower()
-        try:
-            if ".csv" in url_lower:
-                return pd.read_csv(io.BytesIO(content))
-            elif ".xlsx" in url_lower or ".xls" in url_lower:
-                return pd.read_excel(io.BytesIO(content), sheet_name=sheet_name)
-            elif ".zip" in url_lower:
-                # Handle zipped CSV
-                import zipfile
+        # Check if content is a ZIP file (by magic bytes)
+        is_zip = content[:4] == b"PK\x03\x04"
 
+        try:
+            if is_zip:
+                # Handle ZIP file
                 with zipfile.ZipFile(io.BytesIO(content)) as zf:
-                    # Find CSV file in zip
-                    csv_files = [n for n in zf.namelist() if n.endswith(".csv")]
-                    if csv_files:
-                        with zf.open(csv_files[0]) as f:
-                            return pd.read_csv(f)
+                    file_list = zf.namelist()
+                    if not file_list:
+                        logger.warning(f"Empty ZIP file for document {doc.doc_id}")
+                        return pd.DataFrame()
+
+                    # Find the first data file (prefer CSV, then Excel)
+                    target_file = None
+                    for name in file_list:
+                        name_lower = name.lower()
+                        if name_lower.endswith(".csv"):
+                            target_file = name
+                            break
+                        elif name_lower.endswith((".xlsx", ".xls")):
+                            target_file = name
+                            # Don't break - keep looking for CSV
+
+                    if not target_file:
+                        # Use first file
+                        target_file = file_list[0]
+
+                    with zf.open(target_file) as f:
+                        file_content = f.read()
+
+                    # Parse based on file extension
+                    if target_file.lower().endswith(".csv"):
+                        return pd.read_csv(io.BytesIO(file_content))
+                    elif target_file.lower().endswith((".xlsx", ".xls")):
+                        return pd.read_excel(
+                            io.BytesIO(file_content), sheet_name=sheet_name
+                        )
+                    else:
+                        # Try CSV first
+                        try:
+                            return pd.read_csv(io.BytesIO(file_content))
+                        except Exception:
+                            return pd.read_excel(
+                                io.BytesIO(file_content), sheet_name=sheet_name
+                            )
             else:
-                # Try CSV first, then Excel
-                try:
+                # Not a ZIP - try to parse directly
+                # Check constructed name for file extension hint
+                name_lower = doc.constructed_name.lower()
+
+                if name_lower.endswith(".csv"):
                     return pd.read_csv(io.BytesIO(content))
-                except Exception:
+                elif name_lower.endswith((".xlsx", ".xls")):
                     return pd.read_excel(io.BytesIO(content), sheet_name=sheet_name)
+                else:
+                    # Try CSV first, then Excel
+                    try:
+                        return pd.read_csv(io.BytesIO(content))
+                    except Exception:
+                        return pd.read_excel(io.BytesIO(content), sheet_name=sheet_name)
+
         except Exception as e:
             logger.error(f"Failed to parse document {doc.doc_id}: {e}")
             return pd.DataFrame()
-
-        return pd.DataFrame()
 
     def get_rtm_spp_historical(self, year: int) -> pd.DataFrame:
         """Get historical RTM settlement point prices for a year.
@@ -316,20 +375,66 @@ class ERCOTDocumentsMixin:
 
         return self.read_doc(target_doc)
 
-    def get_settlement_point_mapping(self) -> pd.DataFrame:
+    def get_settlement_point_mapping(self) -> dict[str, pd.DataFrame]:
         """Get the current settlement point mapping.
 
-        Returns a DataFrame with settlement point names, types, and
-        associated electrical buses.
+        Returns a dict of DataFrames with different mapping types:
+        - 'settlement_points': Main settlement points list
+        - 'resource_nodes': Resource node to unit mapping
+        - 'hubs': Hub names and DC ties
+        - 'ccp': CCP resource names
+        - 'noie': Non-Opt-In Entity mapping
 
         Returns:
-            DataFrame with settlement point mapping
+            Dict mapping name to DataFrame
         """
+        import zipfile
+
         report_type_id = REPORT_TYPE_IDS["settlement_points_mapping"]
         doc = self._get_document(report_type_id, latest=True)
 
         if not doc:
             logger.warning("No settlement point mapping found")
-            return pd.DataFrame()
+            return {}
 
-        return self.read_doc(doc)
+        # Download the ZIP
+        try:
+            with httpx.Client(timeout=120.0) as client:
+                response = client.get(doc.url)
+                response.raise_for_status()
+                content = response.content
+        except Exception as e:
+            logger.error(f"Failed to download settlement point mapping: {e}")
+            return {}
+
+        # Read all CSV files from the ZIP
+        result: dict[str, pd.DataFrame] = {}
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                for name in zf.namelist():
+                    if not name.lower().endswith(".csv"):
+                        continue
+
+                    # Determine the key name from filename
+                    base_name = name.split("/")[-1].lower()
+                    if "settlement_point" in base_name:
+                        key = "settlement_points"
+                    elif "resource_node" in base_name:
+                        key = "resource_nodes"
+                    elif "hub" in base_name or "dc_tie" in base_name:
+                        key = "hubs"
+                    elif "ccp" in base_name:
+                        key = "ccp"
+                    elif "noie" in base_name:
+                        key = "noie"
+                    else:
+                        key = base_name.replace(".csv", "")
+
+                    with zf.open(name) as f:
+                        result[key] = pd.read_csv(f)
+
+        except Exception as e:
+            logger.error(f"Failed to parse settlement point mapping: {e}")
+            return {}
+
+        return result

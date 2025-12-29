@@ -1,10 +1,15 @@
-"""Dashboard/JSON methods for ERCOT data access (no authentication required).
+"""Dashboard/JSON methods for ERCOT data access.
 
-This module contains methods that access ERCOT's public dashboard endpoints
-at https://www.ercot.com/api/1/services/read/dashboards/
+NOTE: ERCOT's public dashboard data is not available via documented JSON endpoints.
+The methods in this module are placeholders that return empty data or default values.
 
-These methods don't require API authentication and provide real-time
-grid status and operational data.
+For real-time grid data, use the authenticated API methods instead:
+- System load: get_actual_system_load_by_weather_zone()
+- Generation: get_generation_by_resource_type()
+- Forecasts: get_load_forecast_by_weather_zone(), get_wpp_hourly_average_actual_forecast()
+
+These dashboard methods may be implemented in the future if ERCOT provides public
+JSON endpoints, or by scraping the ERCOT dashboard website.
 """
 
 from __future__ import annotations
@@ -12,15 +17,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
-import httpx
 import pandas as pd
 
 logger = logging.getLogger(__name__)
-
-# Dashboard base URL
-DASHBOARD_BASE = "https://www.ercot.com/api/1/services/read/dashboards"
 
 
 class GridCondition(str, Enum):
@@ -30,6 +30,7 @@ class GridCondition(str, Enum):
     CONSERVATION = "conservation"
     WATCH = "watch"
     EMERGENCY = "emergency"
+    UNKNOWN = "unknown"
 
 
 @dataclass
@@ -42,231 +43,142 @@ class GridStatus:
     capacity: float
     reserves: float
     timestamp: pd.Timestamp
+    message: str = ""
 
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> GridStatus:
-        """Create GridStatus from dashboard JSON response."""
+    def unavailable(cls) -> GridStatus:
+        """Create an unavailable GridStatus placeholder."""
         return cls(
-            condition=GridCondition(data.get("condition", "normal").lower()),
-            current_frequency=float(data.get("currentFrequency", 60.0)),
-            current_load=float(data.get("currentLoad", 0)),
-            capacity=float(data.get("capacity", 0)),
-            reserves=float(data.get("reserves", 0)),
+            condition=GridCondition.UNKNOWN,
+            current_frequency=0.0,
+            current_load=0.0,
+            capacity=0.0,
+            reserves=0.0,
             timestamp=pd.Timestamp.now(tz="US/Central"),
+            message="Dashboard data not available - use authenticated API methods instead",
         )
 
 
 class ERCOTDashboardMixin:
     """Mixin class providing dashboard/JSON methods.
 
-    These methods access ERCOT's public dashboard endpoints
-    and don't require authentication.
+    NOTE: These methods are placeholders. ERCOT does not provide documented
+    public JSON endpoints for dashboard data. Use authenticated API methods
+    for real data:
+
+    - System load: get_actual_system_load_by_weather_zone()
+    - Forecasts: get_load_forecast_by_weather_zone()
+    - Wind/Solar: get_wpp_hourly_average_actual_forecast(), get_spp_hourly_average_actual_forecast()
     """
 
     def get_status(self) -> GridStatus:
         """Get current grid operating status.
 
-        Returns real-time grid conditions including:
-        - Operating condition (normal, watch, emergency, etc.)
-        - Current frequency
-        - Current load
-        - Available capacity
-        - Operating reserves
+        NOTE: This method returns placeholder data. ERCOT does not provide
+        a public JSON API for grid status. For real data, use:
+        - get_actual_system_load_by_weather_zone() for current load
+        - Check ercot.com dashboard for grid conditions
 
         Returns:
-            GridStatus object with current grid state
+            GridStatus object (placeholder with unavailable message)
         """
-        url = f"{DASHBOARD_BASE}/current-conditions.json"
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch grid status: {e}")
-            # Return a default status on error
-            return GridStatus(
-                condition=GridCondition.NORMAL,
-                current_frequency=60.0,
-                current_load=0,
-                capacity=0,
-                reserves=0,
-                timestamp=pd.Timestamp.now(tz="US/Central"),
-            )
-
-        return GridStatus.from_json(data)
+        logger.warning(
+            "get_status() returns placeholder data - "
+            "ERCOT does not provide public JSON endpoints for dashboard data"
+        )
+        return GridStatus.unavailable()
 
     def get_fuel_mix(self, date: str = "today") -> pd.DataFrame:
         """Get generation fuel mix data.
 
-        Returns 5-minute interval data for generation by fuel type:
-        - Wind
-        - Solar
-        - Natural Gas
-        - Coal
-        - Nuclear
-        - Hydro
-        - Other
+        NOTE: This method returns empty DataFrame. ERCOT does not provide
+        a public JSON API for fuel mix. For real data, use:
+        - get_generation_by_resource_type() (requires auth)
+        - Check ercot.com fuel mix dashboard
 
         Args:
             date: Date to fetch ("today", "yesterday", or YYYY-MM-DD)
 
         Returns:
-            DataFrame with columns: Time, Wind, Solar, Gas, Coal, Nuclear, etc.
+            Empty DataFrame (placeholder - endpoint not available)
         """
-        url = f"{DASHBOARD_BASE}/fuel-mix.json"
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch fuel mix: {e}")
-            return pd.DataFrame()
-
-        # Parse fuel mix data
-        rows = []
-        for entry in data.get("data", []):
-            row = {
-                "Timestamp": pd.Timestamp(entry.get("timestamp", "")),
-            }
-            for fuel, value in entry.get("fuels", {}).items():
-                row[fuel.title()] = float(value)
-            rows.append(row)
-
-        if not rows:
-            return pd.DataFrame()
-
-        df = pd.DataFrame(rows)
-        if "Timestamp" in df.columns:
-            df = df.sort_values("Timestamp")
-
-        return df
+        logger.warning(
+            "get_fuel_mix() returns empty data - "
+            "ERCOT does not provide public JSON endpoints for fuel mix. "
+            "Use get_generation_by_resource_type() with authentication instead."
+        )
+        return pd.DataFrame()
 
     def get_energy_storage_resources(self) -> pd.DataFrame:
         """Get energy storage resource (ESR) data.
 
-        Returns current state of grid-connected battery storage:
-        - Total capacity
-        - Current charge level
-        - Charging/discharging status
+        NOTE: This method returns empty DataFrame. For ESR data, use
+        authenticated API methods.
 
         Returns:
-            DataFrame with ESR data
+            Empty DataFrame (placeholder - endpoint not available)
         """
-        url = f"{DASHBOARD_BASE}/energy-storage.json"
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch ESR data: {e}")
-            return pd.DataFrame()
-
-        # Parse ESR data
-        records = data.get("data", [])
-        if not records:
-            return pd.DataFrame()
-
-        return pd.DataFrame(records)
+        logger.warning(
+            "get_energy_storage_resources() returns empty data - "
+            "use authenticated API methods for ESR data"
+        )
+        return pd.DataFrame()
 
     def get_system_wide_demand(self) -> pd.DataFrame:
         """Get system-wide demand data.
 
-        Returns current and forecasted system demand.
+        NOTE: This method returns empty DataFrame. For demand data, use:
+        - get_actual_system_load_by_weather_zone() (current load)
+        - get_load_forecast_by_weather_zone() (forecasts)
 
         Returns:
-            DataFrame with demand data
+            Empty DataFrame (placeholder - endpoint not available)
         """
-        url = f"{DASHBOARD_BASE}/system-wide-demand.json"
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch system demand: {e}")
-            return pd.DataFrame()
-
-        records = data.get("data", [])
-        if not records:
-            return pd.DataFrame()
-
-        df = pd.DataFrame(records)
-        return df
+        logger.warning(
+            "get_system_wide_demand() returns empty data - "
+            "use get_actual_system_load_by_weather_zone() instead"
+        )
+        return pd.DataFrame()
 
     def get_renewable_generation(self) -> pd.DataFrame:
         """Get renewable generation data (wind and solar).
 
-        Returns current and forecasted renewable generation.
+        NOTE: This method returns empty DataFrame. For renewable data, use:
+        - get_wpp_hourly_average_actual_forecast() (wind)
+        - get_spp_hourly_average_actual_forecast() (solar)
 
         Returns:
-            DataFrame with renewable generation data
+            Empty DataFrame (placeholder - endpoint not available)
         """
-        url = f"{DASHBOARD_BASE}/renewable-generation.json"
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch renewable generation: {e}")
-            return pd.DataFrame()
-
-        records = data.get("data", [])
-        if not records:
-            return pd.DataFrame()
-
-        return pd.DataFrame(records)
+        logger.warning(
+            "get_renewable_generation() returns empty data - "
+            "use get_wpp_hourly_average_actual_forecast() or "
+            "get_spp_hourly_average_actual_forecast() instead"
+        )
+        return pd.DataFrame()
 
     def get_capacity_committed(self) -> pd.DataFrame:
         """Get committed generation capacity data.
 
+        NOTE: This method returns empty DataFrame.
+
         Returns:
-            DataFrame with capacity commitment data
+            Empty DataFrame (placeholder - endpoint not available)
         """
-        url = f"{DASHBOARD_BASE}/capacity-committed.json"
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch capacity committed: {e}")
-            return pd.DataFrame()
-
-        records = data.get("data", [])
-        if not records:
-            return pd.DataFrame()
-
-        return pd.DataFrame(records)
+        logger.warning(
+            "get_capacity_committed() returns empty data - endpoint not available"
+        )
+        return pd.DataFrame()
 
     def get_capacity_forecast(self) -> pd.DataFrame:
         """Get capacity forecast data.
 
+        NOTE: This method returns empty DataFrame.
+
         Returns:
-            DataFrame with capacity forecast data
+            Empty DataFrame (placeholder - endpoint not available)
         """
-        url = f"{DASHBOARD_BASE}/capacity-forecast.json"
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch capacity forecast: {e}")
-            return pd.DataFrame()
-
-        records = data.get("data", [])
-        if not records:
-            return pd.DataFrame()
-
-        return pd.DataFrame(records)
+        logger.warning(
+            "get_capacity_forecast() returns empty data - endpoint not available"
+        )
+        return pd.DataFrame()
