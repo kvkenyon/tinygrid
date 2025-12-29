@@ -266,3 +266,123 @@ class TestAPIMethodDefaults:
 
         call_args = mixin._mock_archive.fetch_historical.call_args
         assert "np4-745-cd" in call_args[1]["endpoint"]
+
+
+class NonHistoricalMixin(ERCOTAPIMixin):
+    """Testable mixin that always uses non-historical (live API) path."""
+
+    def __init__(self):
+        self._mock_archive = MagicMock()
+        self._mock_archive.fetch_historical = MagicMock(return_value=pd.DataFrame())
+        self._endpoint_calls = []
+
+    def _get_archive(self):
+        return self._mock_archive
+
+    def _needs_historical(self, date, data_type):
+        return False  # Always use live API for testing
+
+    # Mock the pyercot endpoint methods
+    def get_wpp_hourly_average_actual_forecast(self, **kwargs):
+        self._endpoint_calls.append(("wpp_hourly", kwargs))
+        return pd.DataFrame()
+
+    def get_wpp_hourly_actual_forecast_geo(self, **kwargs):
+        self._endpoint_calls.append(("wpp_hourly_geo", kwargs))
+        return pd.DataFrame()
+
+    def get_wpp_actual_5min_avg_values(self, **kwargs):
+        self._endpoint_calls.append(("wpp_5min", kwargs))
+        return pd.DataFrame()
+
+    def get_wpp_actual_5min_avg_values_geo(self, **kwargs):
+        self._endpoint_calls.append(("wpp_5min_geo", kwargs))
+        return pd.DataFrame()
+
+    def get_spp_hourly_average_actual_forecast(self, **kwargs):
+        self._endpoint_calls.append(("spp_hourly", kwargs))
+        return pd.DataFrame()
+
+    def get_spp_hourly_actual_forecast_geo(self, **kwargs):
+        self._endpoint_calls.append(("spp_hourly_geo", kwargs))
+        return pd.DataFrame()
+
+    def get_spp_actual_5min_avg_values(self, **kwargs):
+        self._endpoint_calls.append(("spp_5min", kwargs))
+        return pd.DataFrame()
+
+    def get_spp_actual_5min_avg_values_geo(self, **kwargs):
+        self._endpoint_calls.append(("spp_5min_geo", kwargs))
+        return pd.DataFrame()
+
+
+class TestNonHistoricalWindForecast:
+    """Tests for get_wind_forecast using live API (non-historical) path."""
+
+    @pytest.fixture
+    def mixin(self):
+        return NonHistoricalMixin()
+
+    def test_wind_forecast_hourly_live(self, mixin):
+        """Test wind forecast hourly uses live endpoint."""
+        mixin.get_wind_forecast(start="today", resolution="hourly")
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "wpp_hourly"
+
+    def test_wind_forecast_hourly_by_region_live(self, mixin):
+        """Test wind forecast hourly by region uses live endpoint."""
+        mixin.get_wind_forecast(start="today", resolution="hourly", by_region=True)
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "wpp_hourly_geo"
+
+    def test_wind_forecast_5min_live(self, mixin):
+        """Test wind forecast 5min uses live endpoint."""
+        mixin.get_wind_forecast(start="today", resolution="5min")
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "wpp_5min"
+
+    def test_wind_forecast_5min_by_region_live(self, mixin):
+        """Test wind forecast 5min by region uses live endpoint."""
+        mixin.get_wind_forecast(start="today", resolution="5min", by_region=True)
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "wpp_5min_geo"
+
+
+class TestNonHistoricalSolarForecast:
+    """Tests for get_solar_forecast using live API (non-historical) path."""
+
+    @pytest.fixture
+    def mixin(self):
+        return NonHistoricalMixin()
+
+    def test_solar_forecast_hourly_live(self, mixin):
+        """Test solar forecast hourly uses live endpoint."""
+        mixin.get_solar_forecast(start="today", resolution="hourly")
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "spp_hourly"
+
+    def test_solar_forecast_hourly_by_region_live(self, mixin):
+        """Test solar forecast hourly by region uses live endpoint."""
+        mixin.get_solar_forecast(start="today", resolution="hourly", by_region=True)
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "spp_hourly_geo"
+
+    def test_solar_forecast_5min_live(self, mixin):
+        """Test solar forecast 5min uses live endpoint."""
+        mixin.get_solar_forecast(start="today", resolution="5min")
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "spp_5min"
+
+    def test_solar_forecast_5min_by_region_live(self, mixin):
+        """Test solar forecast 5min by region uses live endpoint."""
+        mixin.get_solar_forecast(start="today", resolution="5min", by_region=True)
+
+        assert len(mixin._endpoint_calls) == 1
+        assert mixin._endpoint_calls[0][0] == "spp_5min_geo"

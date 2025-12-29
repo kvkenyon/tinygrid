@@ -606,3 +606,357 @@ class TestDashboardWithMocking:
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 2
         assert "hour" in df.columns
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_status_exception_handling(self, mock_fetch, mixin_instance):
+        """Test get_status handles exceptions gracefully."""
+        mock_fetch.return_value = {"current": {"invalid": "data"}}
+        # Should not raise - returns valid status with defaults
+        status = mixin_instance.get_status()
+        assert isinstance(status, GridStatus)
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_status_non_normal_condition_with_no_message(
+        self, mock_fetch, mixin_instance
+    ):
+        """Test get_status builds message for non-normal conditions."""
+        mock_fetch.return_value = {
+            "current": {
+                "condition": "watch",
+                "demand": 50000,
+                "capacity": 70000,
+            }
+        }
+        status = mixin_instance.get_status()
+        assert status.condition == GridCondition.WATCH
+        assert "watch" in status.message.lower()
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_status_with_prc_and_renewable(self, mock_fetch, mixin_instance):
+        """Test get_status extracts PRC and renewable data."""
+        mock_fetch.return_value = {
+            "current": {
+                "condition": "normal",
+                "demand": 50000,
+                "capacity": 70000,
+                "prc": 5000,
+                "windOutput": 12000,
+                "solarOutput": 8000,
+                "peakForecast": 75000,
+            }
+        }
+        status = mixin_instance.get_status()
+        assert status.prc == 5000.0
+        assert status.wind_output == 12000.0
+        assert status.solar_output == 8000.0
+        assert status.peak_forecast == 75000.0
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_fuel_mix_failure_returns_empty(self, mock_fetch, mixin_instance):
+        """Test get_fuel_mix returns empty DataFrame on failure."""
+        mock_fetch.return_value = None
+        df = mixin_instance.get_fuel_mix()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_fuel_mix_failure_as_list(self, mock_fetch, mixin_instance):
+        """Test get_fuel_mix returns empty list on failure with as_dataframe=False."""
+        mock_fetch.return_value = None
+        result = mixin_instance.get_fuel_mix(as_dataframe=False)
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_fuel_mix_exception_handling(self, mock_fetch, mixin_instance):
+        """Test get_fuel_mix handles parsing exceptions."""
+        # Return invalid data that will cause parsing exception
+        mock_fetch.return_value = {"data": "invalid"}
+        df = mixin_instance.get_fuel_mix()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_fuel_mix_exception_as_list(self, mock_fetch, mixin_instance):
+        """Test get_fuel_mix returns empty list on exception with as_dataframe=False."""
+        mock_fetch.return_value = {"data": "invalid"}
+        result = mixin_instance.get_fuel_mix(as_dataframe=False)
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_fuel_mix_empty_data(self, mock_fetch, mixin_instance):
+        """Test get_fuel_mix with empty data list."""
+        mock_fetch.return_value = {"data": [], "lastUpdated": 1704067200000}
+        df = mixin_instance.get_fuel_mix()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_renewable_generation_failure(self, mock_fetch, mixin_instance):
+        """Test get_renewable_generation returns defaults on failure."""
+        mock_fetch.return_value = None
+        status = mixin_instance.get_renewable_generation()
+        assert isinstance(status, RenewableStatus)
+        assert status.wind_mw == 0.0
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_renewable_generation_exception(self, mock_fetch, mixin_instance):
+        """Test get_renewable_generation handles exceptions gracefully."""
+        # Return data that will cause parsing exception
+        mock_fetch.return_value = {"current": None}
+        status = mixin_instance.get_renewable_generation()
+        assert isinstance(status, RenewableStatus)
+        assert status.wind_mw == 0.0
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_supply_demand_failure(self, mock_fetch, mixin_instance):
+        """Test get_supply_demand returns empty DataFrame on failure."""
+        mock_fetch.return_value = None
+        df = mixin_instance.get_supply_demand()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_supply_demand_empty_data(self, mock_fetch, mixin_instance):
+        """Test get_supply_demand with empty data list."""
+        mock_fetch.return_value = {"data": [], "lastUpdated": 1704067200000}
+        df = mixin_instance.get_supply_demand()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_supply_demand_exception(self, mock_fetch, mixin_instance):
+        """Test get_supply_demand handles exceptions gracefully."""
+        mock_fetch.return_value = {"data": None}
+        df = mixin_instance.get_supply_demand()
+        assert isinstance(df, pd.DataFrame)
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_daily_prices_failure(self, mock_fetch, mixin_instance):
+        """Test get_daily_prices returns empty DataFrame on failure."""
+        mock_fetch.return_value = None
+        df = mixin_instance.get_daily_prices()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_daily_prices_empty_data(self, mock_fetch, mixin_instance):
+        """Test get_daily_prices with empty data list."""
+        mock_fetch.return_value = {"data": [], "lastUpdated": 1704067200000}
+        df = mixin_instance.get_daily_prices()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_daily_prices_exception(self, mock_fetch, mixin_instance):
+        """Test get_daily_prices handles exceptions gracefully."""
+        mock_fetch.return_value = {"data": None}
+        df = mixin_instance.get_daily_prices()
+        assert isinstance(df, pd.DataFrame)
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_system_wide_demand_failure(self, mock_fetch, mixin_instance):
+        """Test get_system_wide_demand returns empty DataFrame on failure."""
+        mock_fetch.return_value = None
+        df = mixin_instance.get_system_wide_demand()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_system_wide_demand_empty_data(self, mock_fetch, mixin_instance):
+        """Test get_system_wide_demand with empty data."""
+        mock_fetch.return_value = {"current": {}, "hourly": []}
+        df = mixin_instance.get_system_wide_demand()
+        assert isinstance(df, pd.DataFrame)
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_system_wide_demand_exception(self, mock_fetch, mixin_instance):
+        """Test get_system_wide_demand handles exceptions gracefully."""
+        mock_fetch.return_value = {"invalid": "data"}
+        df = mixin_instance.get_system_wide_demand()
+        assert isinstance(df, pd.DataFrame)
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_energy_storage_resources_failure(self, mock_fetch, mixin_instance):
+        """Test get_energy_storage_resources returns empty DataFrame on failure."""
+        mock_fetch.return_value = None
+        df = mixin_instance.get_energy_storage_resources()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_energy_storage_resources_no_esr(self, mock_fetch, mixin_instance):
+        """Test get_energy_storage_resources when ESR data not present."""
+        mock_fetch.return_value = {"current": {"demand": 50000}}
+        df = mixin_instance.get_energy_storage_resources()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_energy_storage_resources_exception(self, mock_fetch, mixin_instance):
+        """Test get_energy_storage_resources handles exceptions gracefully."""
+        mock_fetch.return_value = {"current": {"esr": "invalid"}}
+        df = mixin_instance.get_energy_storage_resources()
+        assert isinstance(df, pd.DataFrame)
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_capacity_committed_failure(self, mock_fetch, mixin_instance):
+        """Test get_capacity_committed returns empty DataFrame on failure."""
+        mock_fetch.return_value = None
+        df = mixin_instance.get_capacity_committed()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_capacity_committed_empty_data(self, mock_fetch, mixin_instance):
+        """Test get_capacity_committed with empty data list."""
+        mock_fetch.return_value = {"data": [], "lastUpdated": 1704067200000}
+        df = mixin_instance.get_capacity_committed()
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_capacity_committed_exception(self, mock_fetch, mixin_instance):
+        """Test get_capacity_committed handles exceptions gracefully."""
+        mock_fetch.return_value = {"data": None}
+        df = mixin_instance.get_capacity_committed()
+        assert isinstance(df, pd.DataFrame)
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_status_with_alternative_field_names(self, mock_fetch, mixin_instance):
+        """Test get_status parses alternative field names correctly."""
+        mock_fetch.return_value = {
+            "status": "normal",
+            "load": 55000,
+            "totalCapacity": 80000,
+            "operatingReserves": 25000,
+            "wind": 15000,
+            "solar": 9000,
+            "peak": 78000,
+            "physicalResponsive": 4500,
+            "timestamp": 1704067200000,
+            "alert": "Test alert message",
+        }
+        status = mixin_instance.get_status()
+        assert status.current_load == 55000.0
+        assert status.capacity == 80000.0
+        assert status.reserves == 25000.0
+
+
+class TestFetchJsonGenericException:
+    """Tests for _fetch_json generic exception handling."""
+
+    @patch("tinygrid.ercot.dashboard.httpx.Client")
+    def test_fetch_json_generic_exception(self, mock_client_class):
+        """Test generic exception returns None."""
+        from unittest.mock import MagicMock
+
+        mock_client = MagicMock()
+        mock_client.get.side_effect = Exception("Unexpected error")
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=None)
+        mock_client_class.return_value = mock_client
+
+        result = _fetch_json("https://example.com/api")
+
+        assert result is None
+
+
+class TestDashboardAlternativeParsing:
+    """Tests for alternative data structure parsing in dashboard methods."""
+
+    @pytest.fixture
+    def mixin_instance(self):
+        """Create a test instance with the mixin."""
+
+        class TestClass(ERCOTDashboardMixin):
+            pass
+
+        return TestClass()
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_fuel_mix_with_fuelMix_key(self, mock_fetch, mixin_instance):
+        """Test get_fuel_mix parsing with 'fuelMix' key."""
+        mock_fetch.return_value = {
+            "fuelMix": [
+                {"fuelType": "natural_gas", "generation": 30000},
+            ],
+            "timestamp": 1704067200000,
+        }
+        df = mixin_instance.get_fuel_mix()
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1
+        assert df.iloc[0]["fuel_type"] == "natural_gas"
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_fuel_mix_with_mw_key(self, mock_fetch, mixin_instance):
+        """Test get_fuel_mix parsing with 'mw' key."""
+        mock_fetch.return_value = {
+            "data": [
+                {"type": "coal", "mw": 20000, "percentage": 35},
+            ],
+            "lastUpdated": 1704067200000,
+        }
+        df = mixin_instance.get_fuel_mix()
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1
+        assert df.iloc[0]["generation_mw"] == 20000.0
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_supply_demand_with_hourly_key(self, mock_fetch, mixin_instance):
+        """Test get_supply_demand parsing with 'hourly' key."""
+        mock_fetch.return_value = {
+            "hourly": [
+                {"hourEnding": 1, "load": 45000, "capacity": 60000, "reserves": 15000},
+            ],
+            "lastUpdated": 1704067200000,
+        }
+        df = mixin_instance.get_supply_demand()
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_daily_prices_with_prices_key(self, mock_fetch, mixin_instance):
+        """Test get_daily_prices parsing with 'prices' key."""
+        mock_fetch.return_value = {
+            "prices": [
+                {"sp": "HB_HOUSTON", "spp": 30.50, "peakPrice": 45.0, "avgPrice": 28.0},
+            ],
+            "lastUpdated": 1704067200000,
+        }
+        df = mixin_instance.get_daily_prices()
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_renewable_with_alternative_keys(self, mock_fetch, mixin_instance):
+        """Test get_renewable_generation parsing with alternative keys."""
+        mock_fetch.return_value = {
+            "current": {
+                "wind": 18000,
+                "solar": 8000,
+                "windFcst": 19000,
+                "solarFcst": 7500,
+                "windCap": 35000,
+                "solarCap": 20000,
+            },
+            "lastUpdated": 1704067200000,
+        }
+        status = mixin_instance.get_renewable_generation()
+        assert status.wind_mw == 18000.0
+        assert status.solar_mw == 8000.0
+        assert status.wind_forecast_mw == 19000.0
+
+    @patch("tinygrid.ercot.dashboard._fetch_json")
+    def test_get_capacity_committed_with_hourly_key(self, mock_fetch, mixin_instance):
+        """Test get_capacity_committed parsing with 'hourly' key."""
+        mock_fetch.return_value = {
+            "hourly": [
+                {"hourEnding": 1, "supply": 60000, "capacity": 70000},
+            ],
+            "lastUpdated": 1704067200000,
+        }
+        df = mixin_instance.get_capacity_committed()
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1

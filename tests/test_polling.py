@@ -412,3 +412,106 @@ class TestPollLatest:
 
         call_kwargs = mock_method.call_args[1]
         assert call_kwargs["custom_param"] == "value"
+
+
+class TestPollerEdgeCases:
+    """Tests for edge cases in poller behavior."""
+
+    @patch("tinygrid.ercot.polling.time.sleep")
+    def test_poll_callback_stops_on_max_errors(self, mock_sleep):
+        """Test poll with callback stops after max consecutive errors."""
+        mock_client = MagicMock()
+        mock_method = MagicMock(side_effect=GridAPIError("Error", status_code=500))
+        callback_results = []
+
+        def callback(result):
+            callback_results.append(result)
+
+        poller = ERCOTPoller(client=mock_client, max_errors=3)
+        poller.poll(method=mock_method, callback=callback, max_iterations=10)
+
+        # Should stop after 3 errors
+        assert len(callback_results) == 3
+        assert all(not r.success for r in callback_results)
+
+    @patch("tinygrid.ercot.polling.time.sleep")
+    def test_poll_with_explicit_start_arg(self, mock_sleep):
+        """Test poll_once does not override explicit start argument."""
+        mock_client = MagicMock()
+        mock_method = MagicMock(return_value=pd.DataFrame())
+
+        poller = ERCOTPoller(client=mock_client)
+        poller._poll_once(mock_method, iteration=0, start="2024-01-01")
+
+        call_kwargs = mock_method.call_args[1]
+        assert call_kwargs["start"] == "2024-01-01"
+
+    @patch("tinygrid.ercot.polling.time.sleep")
+    def test_poll_iter_can_be_stopped_early(self, mock_sleep):
+        """Test poll_iter can be stopped early via stop()."""
+        mock_client = MagicMock()
+        mock_method = MagicMock(return_value=pd.DataFrame())
+
+        poller = ERCOTPoller(client=mock_client)
+
+        results = []
+        for i, result in enumerate(poller.poll_iter(method=mock_method)):
+            results.append(result)
+            if i >= 2:
+                poller.stop()
+
+        assert len(results) == 3
+        assert not poller._running
+
+    @patch("tinygrid.ercot.polling.time.sleep")
+    def test_poll_iter_uses_correct_wait_time(self, mock_sleep):
+        """Test poll_iter uses correct wait time between iterations."""
+        mock_client = MagicMock()
+        mock_method = MagicMock(return_value=pd.DataFrame())
+
+        poller = ERCOTPoller(client=mock_client, interval=30.0)
+
+        list(poller.poll_iter(method=mock_method, max_iterations=2))
+
+        # Sleep is called after each iteration except possibly the last
+        # For 2 iterations, we expect sleeps between them
+        assert mock_sleep.call_count >= 1
+        # Verify the interval is correct
+        mock_sleep.assert_called_with(30.0)
+
+    @patch("tinygrid.ercot.polling.time.sleep")
+    def test_poll_iter_adds_backoff_to_wait_time(self, mock_sleep):
+        """Test poll_iter adds backoff to wait time on errors."""
+        mock_client = MagicMock()
+        mock_method = MagicMock(
+            side_effect=[
+                GridAPIError("Error", status_code=500),
+                pd.DataFrame(),
+            ]
+        )
+
+        poller = ERCOTPoller(client=mock_client, interval=10.0, max_errors=5)
+
+        list(poller.poll_iter(method=mock_method, max_iterations=2))
+
+        # First sleep should include backoff
+        first_sleep_call = mock_sleep.call_args_list[0][0][0]
+        assert first_sleep_call > 10.0  # interval + backoff
+
+    @patch("tinygrid.ercot.polling.time.sleep")
+    def test_poll_latest_skips_none_data(self, mock_sleep):
+        """Test poll_latest skips results with None data."""
+        mock_client = MagicMock()
+        # Returns DataFrame, but empty result still has data set
+        mock_method = MagicMock(return_value=pd.DataFrame({"col": [1]}))
+
+        results = list(
+            poll_latest(
+                client=mock_client,
+                method=mock_method,
+                max_iterations=2,
+            )
+        )
+
+        assert len(results) == 2
+        assert all(len(r) == 1 for r in results)

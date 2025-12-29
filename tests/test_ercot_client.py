@@ -256,3 +256,143 @@ class TestERCOTClientCoverage:
         df = client._to_dataframe([[1, 2]], [])
         assert not df.empty
         assert df.shape == (1, 2)
+
+    def test_get_client_with_no_auth(self):
+        """Test _get_client without authentication."""
+        client = ERCOTBase()
+
+        # Get client
+        c1 = client._get_client()
+        assert c1 is not None
+
+        # Second call reuses client
+        c2 = client._get_client()
+        assert c1 is c2
+
+    def test_get_rate_limiter_disabled(self):
+        """Test _get_rate_limiter when rate limiting is disabled."""
+        client = ERCOTBase(rate_limit_enabled=False)
+
+        limiter = client._get_rate_limiter()
+        assert limiter is None
+
+    def test_get_rate_limiter_enabled(self):
+        """Test _get_rate_limiter when rate limiting is enabled."""
+        client = ERCOTBase(rate_limit_enabled=True)
+
+        limiter = client._get_rate_limiter()
+        assert limiter is not None
+
+        # Second call returns same instance
+        limiter2 = client._get_rate_limiter()
+        assert limiter is limiter2
+
+    def test_products_to_dataframe_raw_list(self):
+        """Test _products_to_dataframe with raw list input."""
+        client = ERCOTBase()
+
+        # Raw list response
+        df = client._products_to_dataframe([{"id": 1}, {"id": 2}])
+        assert not df.empty
+        assert len(df) == 2
+
+    def test_products_to_dataframe_hal_format(self):
+        """Test _products_to_dataframe with HAL format."""
+        client = ERCOTBase()
+
+        # HAL format: {"_embedded": {"products": [...]}}
+        df = client._products_to_dataframe(
+            {"_embedded": {"products": [{"id": 1}, {"id": 2}]}}
+        )
+        assert not df.empty
+        assert len(df) == 2
+
+    def test_products_to_dataframe_additional_properties(self):
+        """Test _products_to_dataframe with additional_properties."""
+        client = ERCOTBase()
+
+        # additional_properties with products key
+        df = client._products_to_dataframe(
+            {"additional_properties": {"products": [{"id": 1}]}}
+        )
+        assert not df.empty
+        assert len(df) == 1
+
+        # additional_properties with _embedded key
+        df = client._products_to_dataframe(
+            {"additional_properties": {"_embedded": {"products": [{"id": 2}]}}}
+        )
+        assert not df.empty
+        assert len(df) == 1
+
+    def test_products_to_dataframe_none(self):
+        """Test _products_to_dataframe with None input."""
+        client = ERCOTBase()
+        df = client._products_to_dataframe(None)
+        assert df.empty
+
+    def test_products_to_dataframe_non_dict(self):
+        """Test _products_to_dataframe with non-dict, non-list input."""
+        client = ERCOTBase()
+        df = client._products_to_dataframe("not a dict or list")
+        assert df.empty
+
+    def test_extract_response_data_to_dict_failure(self):
+        """Test _extract_response_data when to_dict() fails."""
+        client = ERCOTBase()
+
+        class FailingToDict:
+            def to_dict(self):
+                raise ValueError("Failed")
+
+        # Should not raise, fallback to other methods
+        result = client._extract_response_data(FailingToDict())
+        assert result == {}
+
+    def test_extract_response_data_data_to_dict_failure(self):
+        """Test _extract_response_data when data.to_dict() fails."""
+        client = ERCOTBase()
+
+        class FailingDataToDict:
+            def to_dict(self):
+                raise ValueError("Failed")
+
+        class ReportWithFailingData:
+            data = FailingDataToDict()
+
+        result = client._extract_response_data(ReportWithFailingData())
+        assert result == {}
+
+    def test_call_endpoint_raw_none_response(self):
+        """Test _call_endpoint_raw with None response."""
+        client = ERCOTBase()
+        mock_module = MagicMock()
+        mock_module.sync.return_value = None
+
+        result = client._call_endpoint_raw(mock_module, "test")
+        assert result == {}
+
+    def test_context_manager(self):
+        """Test ERCOTBase context manager enter/exit."""
+        client = ERCOTBase()
+
+        with client as c:
+            assert c is client
+            assert c._entered_client is not None
+
+        # After exiting, _entered_client should be None
+        assert client._entered_client is None
+
+    def test_should_use_historical(self):
+        """Test _should_use_historical method."""
+        import pandas as pd
+
+        client = ERCOTBase()
+
+        # Date far in the past should use historical
+        old_date = pd.Timestamp("2020-01-01", tz="US/Central")
+        assert client._should_use_historical(old_date) is True
+
+        # Recent date should not use historical
+        recent_date = pd.Timestamp.now(tz="US/Central") - pd.Timedelta(days=10)
+        assert client._should_use_historical(recent_date) is False
