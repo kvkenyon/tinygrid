@@ -305,7 +305,7 @@ class ERCOTBase(BaseISOClient):
                 max=self.retry_max_wait,
             ),
             retry=retry_if_exception(_is_retryable_error),
-            reraise=True,
+            reraise=False,
         )
         def _execute() -> dict[str, Any]:
             return self._call_endpoint_raw(func, endpoint_name, **kwargs)
