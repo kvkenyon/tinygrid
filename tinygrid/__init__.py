@@ -2,7 +2,7 @@
 
 from .auth import ERCOTAuth, ERCOTAuthConfig
 from .constants import LocationType, Market, SettlementPointType
-from .ercot import ERCOT
+from .ercot import ERCOT, ERCOTArchive
 from .errors import (
     GridAPIError,
     GridAuthenticationError,
@@ -11,7 +11,9 @@ from .errors import (
     GridRetryExhaustedError,
     GridTimeoutError,
 )
-from .historical import ERCOTArchive
+
+# Backward compatibility - also export from historical
+from .historical import ERCOTArchive as _ERCOTArchiveLegacy
 
 __version__ = "0.1.0"
 

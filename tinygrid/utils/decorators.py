@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     pass
 
 
-def support_date_range(freq: str | None = None):
+def with_date_range(freq: str | None = None):
     """Decorator that enables date range queries with automatic chunking.
 
     When a method is decorated with this, it will:
@@ -26,7 +26,7 @@ def support_date_range(freq: str | None = None):
 
     Example:
         ```python
-        @support_date_range(freq="7D")
+        @with_date_range(freq="7D")
         def get_spp(self, start, end, **kwargs):
             # Will be called once per 7-day chunk
             ...
@@ -76,3 +76,7 @@ def support_date_range(freq: str | None = None):
         return wrapper
 
     return decorator
+
+
+# Backward compatibility alias
+support_date_range = with_date_range

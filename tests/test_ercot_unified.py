@@ -87,8 +87,10 @@ class TestERCOTUnifiedMethods:
         """Create an ERCOT client instance."""
         return ERCOT()
 
-    def test_filter_by_location_load_zones(self, ercot):
+    def test_filter_by_location_load_zones(self):
         """Test filtering DataFrame by load zones."""
+        from tinygrid.ercot.transforms import filter_by_location
+
         df = pd.DataFrame(
             {
                 "Settlement Point": [
@@ -101,13 +103,15 @@ class TestERCOTUnifiedMethods:
             }
         )
 
-        result = ercot._filter_by_location(df, location_type=LocationType.LOAD_ZONE)
+        result = filter_by_location(df, location_type=LocationType.LOAD_ZONE)
 
         assert len(result) == 2
         assert set(result["Settlement Point"]) == {"LZ_HOUSTON", "LZ_NORTH"}
 
-    def test_filter_by_location_trading_hubs(self, ercot):
+    def test_filter_by_location_trading_hubs(self):
         """Test filtering DataFrame by trading hubs."""
+        from tinygrid.ercot.transforms import filter_by_location
+
         df = pd.DataFrame(
             {
                 "Settlement Point": [
@@ -120,13 +124,15 @@ class TestERCOTUnifiedMethods:
             }
         )
 
-        result = ercot._filter_by_location(df, location_type=LocationType.TRADING_HUB)
+        result = filter_by_location(df, location_type=LocationType.TRADING_HUB)
 
         assert len(result) == 2
         assert set(result["Settlement Point"]) == {"HB_NORTH", "HB_SOUTH"}
 
-    def test_filter_by_specific_locations(self, ercot):
+    def test_filter_by_specific_locations(self):
         """Test filtering DataFrame by specific location names."""
+        from tinygrid.ercot.transforms import filter_by_location
+
         df = pd.DataFrame(
             {
                 "Settlement Point": [
@@ -139,15 +145,17 @@ class TestERCOTUnifiedMethods:
             }
         )
 
-        result = ercot._filter_by_location(df, locations=["LZ_HOUSTON", "LZ_NORTH"])
+        result = filter_by_location(df, locations=["LZ_HOUSTON", "LZ_NORTH"])
 
         assert len(result) == 2
         assert set(result["Settlement Point"]) == {"LZ_HOUSTON", "LZ_NORTH"}
 
-    def test_filter_by_location_empty_df(self, ercot):
+    def test_filter_by_location_empty_df(self):
         """Test filtering empty DataFrame."""
+        from tinygrid.ercot.transforms import filter_by_location
+
         df = pd.DataFrame()
-        result = ercot._filter_by_location(df, location_type=LocationType.LOAD_ZONE)
+        result = filter_by_location(df, location_type=LocationType.LOAD_ZONE)
         assert result.empty
 
     def test_should_use_historical_old_date(self, ercot):

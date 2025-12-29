@@ -16,8 +16,8 @@ import pytest
 import respx
 
 from tinygrid import ERCOT, GridError
+from tinygrid.ercot.archive import ERCOTArchive
 from tinygrid.errors import GridRetryExhaustedError
-from tinygrid.historical.ercot import ERCOTArchive
 
 # Base URL for ERCOT Public API (used by historical endpoints)
 ERCOT_PUBLIC_API_BASE_URL = "https://api.ercot.com/api/public-reports"

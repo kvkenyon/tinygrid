@@ -81,7 +81,7 @@ class TestERCOT:
 class TestEndpointMethods:
     """Test endpoint methods return DataFrames."""
 
-    @patch("tinygrid.ercot.lf_by_model_weather_zone")
+    @patch("tinygrid.ercot.endpoints.lf_by_model_weather_zone")
     def test_get_load_forecast_by_weather_zone_success(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -103,7 +103,7 @@ class TestEndpointMethods:
         assert len(result) == 5
         mock_endpoint.sync.assert_called()
 
-    @patch("tinygrid.ercot.lf_by_model_weather_zone")
+    @patch("tinygrid.ercot.endpoints.lf_by_model_weather_zone")
     def test_get_load_forecast_by_weather_zone_empty_response(
         self, mock_endpoint, sample_empty_response
     ):
@@ -123,7 +123,7 @@ class TestEndpointMethods:
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 0
 
-    @patch("tinygrid.ercot.lf_by_model_weather_zone")
+    @patch("tinygrid.ercot.endpoints.lf_by_model_weather_zone")
     def test_get_load_forecast_by_weather_zone_normalizes_dates(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -144,7 +144,7 @@ class TestEndpointMethods:
         assert call_args.kwargs["delivery_date_from"] == "2024-01-01"
         assert call_args.kwargs["delivery_date_to"] == "2024-01-07"
 
-    @patch("tinygrid.ercot.lf_by_model_weather_zone")
+    @patch("tinygrid.ercot.endpoints.lf_by_model_weather_zone")
     def test_get_load_forecast_by_weather_zone_handles_unexpected_status(
         self, mock_endpoint
     ):
@@ -164,7 +164,7 @@ class TestEndpointMethods:
                 end_date="2024-01-07",
             )
 
-    @patch("tinygrid.ercot.lf_by_model_weather_zone")
+    @patch("tinygrid.ercot.endpoints.lf_by_model_weather_zone")
     def test_get_load_forecast_by_weather_zone_handles_timeout(self, mock_endpoint):
         """Test handling of timeout errors."""
         mock_endpoint.sync.side_effect = TimeoutError("Request timed out")
@@ -225,7 +225,7 @@ class TestParameterizedEndpoints:
         ercot._client = MagicMock()
         method = getattr(ercot, method_name)
 
-        with patch(f"tinygrid.ercot.{endpoint_name}") as mock_endpoint:
+        with patch(f"tinygrid.ercot.endpoints.{endpoint_name}") as mock_endpoint:
             mock_response = MagicMock()
             mock_response.to_dict.return_value = sample_single_page_response
             mock_endpoint.sync.return_value = mock_response
@@ -251,7 +251,7 @@ class TestParameterizedEndpoints:
         ercot._client = MagicMock()
         method = getattr(ercot, method_name)
 
-        with patch(f"tinygrid.ercot.{endpoint_name}") as mock_endpoint:
+        with patch(f"tinygrid.ercot.endpoints.{endpoint_name}") as mock_endpoint:
             mock_response = MagicMock()
             mock_response.to_dict.return_value = sample_single_page_response
             mock_endpoint.sync.return_value = mock_response
@@ -278,7 +278,7 @@ class TestParameterizedEndpoints:
         ercot._client = MagicMock()
         method = getattr(ercot, method_name)
 
-        with patch(f"tinygrid.ercot.{endpoint_name}") as mock_endpoint:
+        with patch(f"tinygrid.ercot.endpoints.{endpoint_name}") as mock_endpoint:
             mock_response = MagicMock()
             mock_response.to_dict.return_value = sample_single_page_response
             mock_endpoint.sync.return_value = mock_response
@@ -310,7 +310,7 @@ class TestParameterizedEndpoints:
         ercot._client = MagicMock()
         method = getattr(ercot, method_name)
 
-        with patch(f"tinygrid.ercot.{endpoint_name}") as mock_endpoint:
+        with patch(f"tinygrid.ercot.endpoints.{endpoint_name}") as mock_endpoint:
             mock_response = MagicMock()
             mock_response.to_dict.return_value = sample_single_page_response
             mock_endpoint.sync.return_value = mock_response
@@ -323,7 +323,7 @@ class TestParameterizedEndpoints:
 class TestDateNormalization:
     """Test date normalization in methods that accept dates."""
 
-    @patch("tinygrid.ercot.dam_hourly_lmp")
+    @patch("tinygrid.ercot.endpoints.dam_hourly_lmp")
     def test_get_dam_hourly_lmp_normalizes_dates(
         self, mock_endpoint, sample_single_page_response
     ):
@@ -344,7 +344,7 @@ class TestDateNormalization:
         assert call_args.kwargs["delivery_date_from"] == "2024-01-01"
         assert call_args.kwargs["delivery_date_to"] == "2024-01-07"
 
-    @patch("tinygrid.ercot.lf_by_model_study_area")
+    @patch("tinygrid.ercot.endpoints.lf_by_model_study_area")
     def test_get_load_forecast_by_study_area_normalizes_dates(
         self, mock_endpoint, sample_single_page_response
     ):
