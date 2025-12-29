@@ -644,12 +644,61 @@ class ERCOTBase(BaseISOClient):
         """
         return self._call_with_retry(endpoint_module, endpoint_name, **kwargs)
 
-    def _products_to_dataframe(self, response: dict[str, Any]) -> pd.DataFrame:
-        """Convert products list response to DataFrame."""
-        products = response.get("products", [])
-        if not products:
+    def _products_to_dataframe(self, response: Any) -> pd.DataFrame:
+        """Convert products list response to DataFrame.
+
+        The ERCOT products endpoint can return multiple shapes depending on the
+        upstream client (pyercot) and API format:
+        - Plain dict: {"products": [...]}
+        - HAL dict: {"_embedded": {"products": [...]}, ...}
+        - Nested HAL in to_dict(): {"additional_properties": {"_embedded": {"products": [...]}}}
+        - Raw list: [...]
+        """
+
+        def _as_products_list(value: Any) -> list[dict[str, Any]]:
+            if not value:
+                return []
+            if isinstance(value, list):
+                # Best effort: only keep mapping-like entries
+                return [item for item in value if isinstance(item, dict)]
+            return []
+
+        if response is None:
             return pd.DataFrame()
-        return pd.DataFrame(products)
+
+        # Some clients can return a raw list response
+        if isinstance(response, list):
+            products = _as_products_list(response)
+            return pd.DataFrame(products) if products else pd.DataFrame()
+
+        if not isinstance(response, dict):
+            return pd.DataFrame()
+
+        # Common shape: {"products": [...]}
+        products = _as_products_list(response.get("products"))
+        if products:
+            return pd.DataFrame(products)
+
+        # HAL shape: {"_embedded": {"products": [...]}}
+        embedded = response.get("_embedded")
+        if isinstance(embedded, dict):
+            products = _as_products_list(embedded.get("products"))
+            if products:
+                return pd.DataFrame(products)
+
+        # Some model to_dict() outputs store HAL payload under additional_properties
+        additional_properties = response.get("additional_properties")
+        if isinstance(additional_properties, dict):
+            products = _as_products_list(additional_properties.get("products"))
+            if products:
+                return pd.DataFrame(products)
+            embedded = additional_properties.get("_embedded")
+            if isinstance(embedded, dict):
+                products = _as_products_list(embedded.get("products"))
+                if products:
+                    return pd.DataFrame(products)
+
+        return pd.DataFrame()
 
     def _model_to_dataframe(self, response: dict[str, Any]) -> pd.DataFrame:
         """Convert a single model response to a one-row DataFrame."""
