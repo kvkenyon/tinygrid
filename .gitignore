@@ -10,6 +10,7 @@ dist/
 # Environments
 .env
 .venv
+venv/
 
 # mypy
 .mypy_cache/
@@ -23,3 +24,7 @@ dmypy.json
 /coverage.xml
 /.coverage
 .DS_Store
+
+# Node
+node_modules/
+npm-debug.log*

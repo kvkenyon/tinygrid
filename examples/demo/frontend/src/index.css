@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* Bloomberg/Palantir Dark Theme */
+:root {
+  /* Core dark palette */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a24;
+  --bg-elevated: #22222e;
+  
+  /* Text colors */
+  --text-primary: #e8e8ed;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  
+  /* Accent colors - Bloomberg/Foundry style */
+  --accent-cyan: #00d4ff;
+  --accent-orange: #ff6b35;
+  --accent-green: #00ff88;
+  --accent-red: #ff4757;
+  --accent-yellow: #ffd93d;
+  --accent-purple: #a855f7;
+  
+  /* Chart colors */
+  --chart-1: #00d4ff;
+  --chart-2: #ff6b35;
+  --chart-3: #00ff88;
+  --chart-4: #ffd93d;
+  --chart-5: #a855f7;
+  --chart-6: #ff4757;
+  --chart-7: #38bdf8;
+  --chart-8: #fb923c;
+  
+  /* Borders */
+  --border-primary: #2a2a3a;
+  --border-secondary: #3a3a4a;
+  
+  /* Status */
+  --status-normal: #00ff88;
+  --status-warning: #ffd93d;
+  --status-danger: #ff4757;
+}
+
+* {
+  border-color: var(--border-primary);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Form elements */
+select, input {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+select:focus, input:focus {
+  border-color: var(--accent-cyan) !important;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent-cyan);
+}
+
+/* Tables */
+table {
+  font-size: 0.875rem;
+}
+
+th {
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* Recharts overrides for dark theme */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border-primary);
+}
+
+.recharts-text {
+  fill: var(--text-secondary);
+}
+
+.recharts-legend-item-text {
+  color: var(--text-secondary) !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--bg-elevated) !important;
+  border: 1px solid var(--border-secondary) !important;
+  border-radius: 4px;
+}
+
+.recharts-tooltip-label {
+  color: var(--text-primary) !important;
+}
+
+.recharts-tooltip-item {
+  color: var(--text-secondary) !important;
+}

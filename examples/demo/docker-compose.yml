@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: examples/demo/backend/Dockerfile
+    container_name: tinygrid-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ERCOT_USERNAME=${ERCOT_USERNAME}
+      - ERCOT_PASSWORD=${ERCOT_PASSWORD}
+      - ERCOT_SUBSCRIPTION_KEY=${ERCOT_SUBSCRIPTION_KEY}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tinygrid-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  default:
+    name: tinygrid-network

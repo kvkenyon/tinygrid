@@ -1,6 +1,16 @@
+# Credentials
 .env
 .env.local
+
+# Python
 *.pyc
 __pycache__/
+.venv/
+venv/
+
+# Jupyter
 .ipynb_checkpoints/
 
+# Node
+node_modules/
+npm-debug.log*

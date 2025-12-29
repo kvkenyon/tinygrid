@@ -7,6 +7,7 @@ exclude = [
   "build",
   "dist",
   "migrations",
+  "examples/demo",
 ]
 
 
