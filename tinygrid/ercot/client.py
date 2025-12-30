@@ -8,6 +8,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any
 
+import httpx
 import pandas as pd
 from attrs import define, field
 from pyercot.errors import UnexpectedStatus
@@ -123,6 +124,7 @@ class ERCOTBase(BaseISOClient):
         Returns:
             Configured ERCOTClient or AuthenticatedClient instance
         """
+
         if self.auth is not None:
             # Ensure we have a valid token (will refresh if expired)
             try:
@@ -648,7 +650,7 @@ class ERCOTBase(BaseISOClient):
         if not hasattr(self, "_archive") or self._archive is None:
             from .archive import ERCOTArchive
 
-            self._archive = ERCOTArchive(client=self)
+            self._archive = ERCOTArchive(ercot=self)
         return self._archive
 
     def _call_endpoint_model(
@@ -740,3 +742,58 @@ class ERCOTBase(BaseISOClient):
         if not archives:
             return pd.DataFrame()
         return pd.DataFrame(archives)
+
+    def make_request(
+        self,
+        url: str,
+        params: dict[str, Any] | None = None,
+        method: str = "GET",
+        parse_json: bool = True,
+    ) -> dict[str, Any] | bytes:
+        """Make an authenticated request to the ERCOT API.
+
+        Args:
+            url: Request URL
+            params: Query parameters (GET) or body (POST)
+            method: HTTP method
+            parse_json: If True, parse response as JSON
+
+        Returns:
+            Parsed JSON dict or raw bytes
+        """
+
+        try:
+            client = self._get_client().get_httpx_client()
+
+            request = client.build_request(
+                method=method,
+                url=url,
+                params=params if method == "GET" else None,
+                json=params if method == "POST" else None,
+            )
+
+            response = client.send(request)
+
+            if response.status_code == 429:
+                raise GridRetryExhaustedError(
+                    "Rate limited by ERCOT API",
+                    status_code=429,
+                    endpoint=url,
+                )
+
+            if response.status_code != 200:
+                raise GridAPIError(
+                    f"ERCOT API returned {response.status_code}",
+                    status_code=response.status_code,
+                    response_body=response.text[:500],
+                    endpoint=url,
+                )
+
+            if parse_json:
+                return response.json()
+            return response.content
+
+        except httpx.TimeoutException as e:
+            raise GridAPIError(f"Request timed out: {e}", endpoint=url) from e
+        except httpx.RequestError as e:
+            raise GridAPIError(f"Request failed: {e}", endpoint=url) from e

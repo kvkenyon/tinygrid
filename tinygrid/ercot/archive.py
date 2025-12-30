@@ -5,16 +5,13 @@ from __future__ import annotations
 import io
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from zipfile import ZipFile
 
-import httpx
 import pandas as pd
 from attrs import define, field
 
 from ..constants.ercot import PUBLIC_API_BASE_URL
-from ..errors import GridAPIError, GridRetryExhaustedError
 from ..utils.dates import format_api_datetime
 
 if TYPE_CHECKING:
@@ -29,7 +26,7 @@ MAX_BATCH_SIZE = 1000
 DEFAULT_ARCHIVE_PAGE_SIZE = 1000
 
 
-@dataclass
+@define
 class ArchiveLink:
     """Represents a link to an archived document."""
 
@@ -63,7 +60,7 @@ class ERCOTArchive:
         ```
     """
 
-    client: ERCOT
+    ercot: ERCOT
     batch_size: int = field(default=MAX_BATCH_SIZE)
     max_concurrent: int = field(default=5)
     timeout: float = field(default=60.0)
@@ -98,7 +95,7 @@ class ERCOTArchive:
                 "page": page,
             }
 
-            response = self._make_request(url, params)
+            response = self.ercot.make_request(url, params)
 
             if page == 1:
                 meta = response.get("_meta", {})
@@ -145,13 +142,17 @@ class ERCOTArchive:
         url = f"{PUBLIC_API_BASE_URL}/archive/{emil_id}/download"
         results: list[tuple[io.BytesIO, str] | None] = [None] * len(doc_ids)
 
+        logger.debug(f"Fetching from {url = }")
+        logger.debug(f"Batch size = {self.batch_size}")
+
         # Batch the downloads
         for batch_start in range(0, len(doc_ids), self.batch_size):
             batch_end = min(batch_start + self.batch_size, len(doc_ids))
             batch = doc_ids[batch_start:batch_end]
 
             payload = {"docIds": batch}
-            response_bytes = self._make_request(
+            logger.debug(f"{payload = }")
+            response_bytes = self.ercot.make_request(
                 url, payload, method="POST", parse_json=False
             )
 
@@ -182,7 +183,7 @@ class ERCOTArchive:
         start: pd.Timestamp,
         end: pd.Timestamp,
         add_post_datetime: bool = False,
-    ) -> pd.DataFrame:
+    ) -> dict[str, pd.DataFrame]:
         """Fetch historical data from archive.
 
         Combines archive link fetching and bulk download into a single operation.
@@ -202,9 +203,11 @@ class ERCOTArchive:
         # Get archive links
         links = self.get_archive_links(emil_id, start, end)
 
+        logger.info(f"Fetching {len(links)} links")
+
         if not links:
             logger.warning(f"No archives found for {endpoint} from {start} to {end}")
-            return pd.DataFrame()
+            return {}
 
         # Extract doc IDs and bulk download
         doc_ids = [link.doc_id for link in links]
@@ -212,27 +215,47 @@ class ERCOTArchive:
 
         files = self.bulk_download(doc_ids, emil_id)
 
+        logger.info(f"Downloaded {len(files)} for {emil_id = }")
+
         # Parse CSVs from zip files
-        dfs: list[pd.DataFrame] = []
+        dfs: dict[str, pd.DataFrame] = {}
         for bytes_io, filename in files:
+            logger.debug(f"{filename = }")
             try:
                 doc_id = filename.split(".")[0]
-                df = pd.read_csv(bytes_io, compression="zip")
-
-                if add_post_datetime and doc_id in post_datetimes:
-                    df["postDatetime"] = post_datetimes[doc_id]
-
-                dfs.append(df)
+                with ZipFile(bytes_io) as zfile:
+                    if len(zfile.namelist()) > 1:
+                        files = self._extract_multiple_files_from_zip(zfile)
+                        for file, name in files:
+                            logger.debug(f"Extracting {name = }")
+                            df = pd.read_csv(file)
+                            if add_post_datetime and doc_id in post_datetimes:
+                                df["postDatetime"] = post_datetimes[doc_id]
+                            dfs[name] = df
+                    else:
+                        df = pd.read_csv(bytes_io, compression="zip")
+                        if add_post_datetime and doc_id in post_datetimes:
+                            df["postDatetime"] = post_datetimes[doc_id]
+                        dfs["archive"] = df
             except Exception as e:
                 logger.warning(f"Failed to parse {filename}: {e}")
 
-        if not dfs:
-            return pd.DataFrame()
+        return dfs
 
-        result = pd.concat(dfs, ignore_index=True)
-        logger.info(f"Fetched {len(result)} records from {len(files)} archives")
-
-        return result
+    def _extract_multiple_files_from_zip(
+        self, zfile: ZipFile
+    ) -> list[tuple[io.BytesIO, str]]:
+        results = []
+        with zfile as zf:
+            for inner_name in zf.namelist():
+                with zf.open(inner_name) as inner_file:
+                    results.append(
+                        (
+                            io.BytesIO(inner_file.read()),
+                            inner_name,
+                        )
+                    )
+        return results
 
     def fetch_historical_parallel(
         self,
@@ -284,69 +307,88 @@ class ERCOTArchive:
 
     def _download_single(self, link: ArchiveLink) -> pd.DataFrame:
         """Download a single archive file."""
-        response = self._make_request(link.url, parse_json=False)
+        response = self.ercot.make_request(link.url, parse_json=False)
         return pd.read_csv(io.BytesIO(response), compression="zip")
 
-    def _make_request(
-        self,
-        url: str,
-        params: dict[str, Any] | None = None,
-        method: str = "GET",
-        parse_json: bool = True,
-    ) -> dict[str, Any] | bytes:
-        """Make an authenticated request to the ERCOT API.
+
+@define
+class BundleLink:
+    doc_id: str
+    publish_date: pd.Timestamp
+    download_url: str
+
+
+@define
+class Bundles:
+    emil_id: str
+    links: list[BundleLink]
+
+
+@define
+class ERCOTArchiveBundle:
+    """The most effective way to download historic data in large quantities"""
+
+    ercot: ERCOT
+
+    def bundles(self, emil_id: str) -> Bundles:
+        bundle_url = f"{PUBLIC_API_BASE_URL}/bundle/{emil_id}"
+        response = self.ercot.make_request(bundle_url, parse_json=True)
+        bundles = response.get("bundles", [])
+        links = []
+        for bundle in bundles:
+            doc_id = bundle.get("docId")
+            post_datetime = bundle.get("postDatetime")
+            download_url = bundle["_links"]["endpoint"]["href"]
+            if doc_id is not None and post_datetime is not None and download_url:
+                links.append(
+                    BundleLink(
+                        doc_id=str(doc_id),
+                        publish_date=post_datetime,
+                        download_url=download_url,
+                    )
+                )
+        return Bundles(emil_id=emil_id, links=links)
+
+    def one_bundle(self, bundle_link: BundleLink) -> pd.DataFrame:
+        """Download a single bundle (zip of zips of CSVs) and extract all CSVs as DataFrames.
 
         Args:
-            url: Request URL
-            params: Query parameters (GET) or body (POST)
-            method: HTTP method
-            parse_json: If True, parse response as JSON
+            bundle_link: BundleLink
 
         Returns:
-            Parsed JSON dict or raw bytes
+            DataFrame containing all rows from all CSV files in all inner zip archives
         """
-        headers = self._get_auth_headers()
+        dataframes: list[pd.DataFrame] = []
+        response = self.ercot.make_request(bundle_link.download_url, parse_json=False)
+        # Unzip the outer zip (contains inner zips)
+        with ZipFile(io.BytesIO(response)) as zfile:
+            for inner_zip_name in zfile.namelist():
+                with zfile.open(inner_zip_name) as inner_zip_bytes:
+                    with ZipFile(inner_zip_bytes) as inner_zip:
+                        for csv_name in inner_zip.namelist():
+                            with inner_zip.open(csv_name) as csv_file:
+                                try:
+                                    df = pd.read_csv(csv_file)
+                                    dataframes.append(df)
+                                except Exception as e:
+                                    logger.error(
+                                        f"Failed to parse CSV {csv_name} in bundle {bundle_link.doc_id}: {e}"
+                                    )
+        if not dataframes:
+            return pd.DataFrame()
+        return pd.concat(dataframes, ignore_index=True)
 
-        try:
-            with httpx.Client(timeout=self.timeout) as http_client:
-                if method == "POST":
-                    response = http_client.post(url, json=params, headers=headers)
-                else:
-                    response = http_client.get(url, params=params, headers=headers)
+    def all(self, bundles: Bundles) -> list[pd.DataFrame]:
+        """Download all bundle links from the given Bundle and extract all CSVs as DataFrames.
 
-                if response.status_code == 429:
-                    raise GridRetryExhaustedError(
-                        "Rate limited by ERCOT API",
-                        status_code=429,
-                        endpoint=url,
-                    )
+        Args:
+            bundles: Bundles
 
-                if response.status_code != 200:
-                    raise GridAPIError(
-                        f"ERCOT API returned {response.status_code}",
-                        status_code=response.status_code,
-                        response_body=response.text[:500],
-                        endpoint=url,
-                    )
-
-                if parse_json:
-                    return response.json()
-                return response.content
-
-        except httpx.TimeoutException as e:
-            raise GridAPIError(f"Request timed out: {e}", endpoint=url) from e
-        except httpx.RequestError as e:
-            raise GridAPIError(f"Request failed: {e}", endpoint=url) from e
-
-    def _get_auth_headers(self) -> dict[str, str]:
-        """Get authentication headers from the client."""
-        if self.client.auth is None:
-            return {}
-
-        token = self.client.auth.get_token()
-        subscription_key = self.client.auth.get_subscription_key()
-
-        return {
-            "Authorization": f"Bearer {token}",
-            "Ocp-Apim-Subscription-Key": subscription_key,
-        }
+        Returns:
+            List of DataFrames, one per CSV file in all inner zip archives
+        """
+        all_dataframes: list[pd.DataFrame] = []
+        for bundle_link in bundles.links:
+            dfs = self.one(bundle_link)
+            all_dataframes.extend(dfs)
+        return all_dataframes

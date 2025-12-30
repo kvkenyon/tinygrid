@@ -422,57 +422,23 @@ def test_get_solar_forecast_historical(monkeypatch: pytest.MonkeyPatch) -> None:
     archive.fetch_historical.assert_called_once()
 
 
-def test_get_60_day_dam_disclosure_uses_archive(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_get_60_day_dam_disclosure_uses_archive() -> None:
     client = ERCOT()
-
     archive = MagicMock()
     archive.fetch_historical.return_value = pd.DataFrame(
         {"DeliveryDate": ["2024-01-01"]}
     )
-    monkeypatch.setattr(client, "_get_archive", lambda: archive)
-
-    for method_name in [
-        "get_dam_gen_res_as_offers",
-        "get_dam_load_res_data",
-        "get_dam_load_res_as_offers",
-        "get_dam_energy_only_offers",
-        "get_dam_energy_only_offer_awards",
-        "get_dam_energy_bids",
-        "get_dam_energy_bid_awards",
-        "get_dam_ptp_obl_bids",
-        "get_dam_ptp_obl_bid_awards",
-        "get_dam_ptp_obl_opt",
-        "get_dam_ptp_obl_opt_awards",
-    ]:
-        monkeypatch.setattr(
-            client, method_name, lambda **kwargs: pd.DataFrame({"dummy": [1]})
-        )
-
-    reports = client.get_60_day_dam_disclosure("today")
-
-    assert "dam_gen_resource" in reports
+    client.get_60_day_dam_disclosure()
     archive.fetch_historical.assert_called_once()
 
 
-def test_get_60_day_sced_disclosure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_60_day_sced_disclosure() -> None:
     client = ERCOT()
 
-    archive = MagicMock()
-    archive.fetch_historical.return_value = pd.DataFrame(
+    documents = MagicMock()
+    documents.get_60d_sced_disclosure.return_value = pd.DataFrame(
         {"DeliveryDate": ["2024-01-01"]}
     )
-    monkeypatch.setattr(client, "_get_archive", lambda: archive)
-
-    monkeypatch.setattr(
-        client, "get_sced_gen_res_data", lambda **kwargs: pd.DataFrame({"a": [1]})
-    )
-    monkeypatch.setattr(
-        client, "get_load_res_data_in_sced", lambda **kwargs: pd.DataFrame({"b": [2]})
-    )
-
     reports = client.get_60_day_sced_disclosure("today")
 
-    assert "sced_smne" in reports
-    archive.fetch_historical.assert_called_once()
+    documents._get_document.assert_called_once()

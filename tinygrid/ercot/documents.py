@@ -52,6 +52,13 @@ REPORT_TYPE_IDS = {
     "settlement_points_mapping": 10008,  # NP4-160-SG
     # Load Zone info
     "load_zone_info": 10000,  # NP4-33-CD
+    # 60-Day SCED Disclosure Reports,
+    "60d_sced_disclosure_reports": 13052,  # NP3-695-ER
+    # System-Wide Demand
+    "system_wide_actuals": 12340,
+    # State Estimator Reports
+    "state_estimator_load_report": 12358,
+    "state_estimator_dc_ties_flows_report": 12359,
 }
 
 
@@ -158,6 +165,8 @@ class ERCOTDocumentsMixin:
             "_": int(pd.Timestamp.now().timestamp() * 1000),  # Cache buster
         }
 
+        logger.info(f"{params = }")
+
         try:
             with httpx.Client(timeout=30.0) as client:
                 response = client.get(MIS_BASE_URL, params=params)
@@ -191,30 +200,39 @@ class ERCOTDocumentsMixin:
         self,
         report_type_id: int,
         date: pd.Timestamp | None = None,
+        max_docs=1000,
         latest: bool = True,
-    ) -> Document | None:
+        keep_all: bool = False,
+    ) -> Document | None | list[Document]:
         """Fetch a single document from MIS.
 
         Args:
             report_type_id: The MIS report type ID
             date: Optional date to filter by
             latest: If True, return the most recent document
+            keep_all: If True, return all documents starting at date
 
         Returns:
-            Document object or None if not found
+            Document object (or list) or None if not found
         """
+        if keep_all and latest:
+            raise ValueError("latest and keep_all are mutually exclusive, pick one")
+
         documents = self._get_documents(
             report_type_id=report_type_id,
             date_from=date,
-            date_to=date + pd.Timedelta(days=1) if date else None,
-            max_documents=10,
+            max_documents=max_docs,
         )
+
+        logger.info(f"Found {len(documents)} docs for {report_type_id}")
 
         if not documents:
             return None
 
+        if keep_all:
+            return documents
+
         if latest:
-            # Return most recent by publish date
             return max(documents, key=lambda d: d.publish_date)
 
         return documents[0]
@@ -378,6 +396,129 @@ class ERCOTDocumentsMixin:
             return pd.DataFrame()
 
         return self.read_doc(target_doc)
+
+    def get_60d_sced_disclosure(
+        self, date: pd.Timestamp | str
+    ) -> dict[str, pd.DataFrame]:
+        import zipfile
+
+        doc = self._get_document(REPORT_TYPE_IDS["60d_sced_disclosure_reports"], date)
+
+        logger.info(f"Latest = {doc}")
+
+        if not doc:
+            logger.warning(f"No get_60d_sced_disclosure found for {date}")
+            return {}
+
+        try:
+            with httpx.Client(timeout=120.0) as client:
+                response = client.get(doc.url)
+                response.raise_for_status()
+                content = response.content
+        except Exception as e:
+            logger.error(f"Failed to download 60-day SCED disclosures: {e}")
+            return {}
+
+        # Read all CSV files from the ZIP
+        results: dict[str, pd.DataFrame] = {}
+
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                for name in zf.namelist():
+                    if not name.lower().endswith(".csv"):
+                        logger.warning(f"Skipping non-csv file: {name}")
+                        continue
+                    with zf.open(name) as csv_file:
+                        df = pd.read_csv(csv_file)
+                        results[name.lower()] = df
+            return results
+
+        except Exception as e:
+            logger.error("Failed to extract zip file for 60-day SCED Disclosure")
+            raise e
+
+    def get_system_wide_actuals_docs(
+        self, start_ts: pd.Timestamp, end_ts: pd.Timestamp
+    ) -> pd.DataFrame:
+        logger.info(f"Fetching from {start_ts} to {end_ts}")
+        docs = self._get_document(
+            REPORT_TYPE_IDS["system_wide_actuals"],
+            start_ts,
+            # TODO: Make this an enum to avoid value errors
+            keep_all=True,
+            latest=False,
+        )
+        if not docs or not isinstance(docs, list):
+            logger.warning("Failed to find docs")
+            return pd.DataFrame()
+        logger.debug(f"all docs = {docs}")
+        keep_docs = [
+            doc
+            for doc in docs
+            if start_ts <= doc.publish_date < end_ts
+            and doc.constructed_name.endswith("csv.zip")
+        ]
+        logger.info(f"Keeping {len(keep_docs)} documents in date range")
+
+        results = []
+        with httpx.Client() as client:
+            for doc in keep_docs:
+                resp = client.get(doc.url)
+                content = resp.content
+                df = pd.read_csv(io.BytesIO(content), compression="zip")
+                results.append(df)
+
+        df = pd.concat(results)
+        return df
+
+    def get_state_estimator_load_report(
+        self, start_ts: pd.Timestamp, end_ts: pd.Timestamp
+    ) -> pd.DataFrame:
+        logger.info(f"Fetching from {start_ts} to {end_ts}")
+        return self._get_reports(
+            start_ts, end_ts, REPORT_TYPE_IDS["state_estimator_load_report"]
+        )
+
+    def get_state_estimator_dc_ties_flows_report(
+        self, start_ts: pd.Timestamp, end_ts: pd.Timestamp
+    ):
+        logger.info(f"Fetching from {start_ts} to {end_ts}")
+        return self._get_reports(
+            start_ts,
+            end_ts,
+            REPORT_TYPE_IDS["state_estimator_dc_ties_flows_report"],
+        )
+
+    def _get_reports(self, start_ts, end_ts, report_type_id) -> pd.DataFrame:
+        docs = self._get_document(
+            report_type_id,
+            start_ts,
+            # TODO: Make this an enum to avoid value errors
+            keep_all=True,
+            latest=False,
+        )
+        if not docs or not isinstance(docs, list):
+            logger.warning("Failed to find docs")
+            return pd.DataFrame()
+        logger.debug(f"all docs = {docs}")
+        keep_docs = [
+            doc
+            for doc in docs
+            if start_ts <= doc.publish_date < end_ts
+            and doc.constructed_name.endswith("csv.zip")
+        ]
+        logger.info(f"Keeping {len(keep_docs)} documents in date range")
+
+        results = []
+        with httpx.Client() as client:
+            for doc in keep_docs:
+                resp = client.get(doc.url)
+                content = resp.content
+                df = pd.read_csv(io.BytesIO(content), compression="zip")
+                results.append(df)
+
+        df = pd.concat(results)
+        return df
 
     def get_settlement_point_mapping(self) -> dict[str, pd.DataFrame]:
         """Get the current settlement point mapping.

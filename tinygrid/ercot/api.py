@@ -610,7 +610,7 @@ class ERCOTAPIMixin:
     # System-Wide Generation and Transmission Data
     # ============================================================================
 
-    def get_dc_tie_flows(
+    def get_se_dc_tie_flows(
         self,
         start: str | pd.Timestamp = "today",
         end: str | pd.Timestamp | None = None,
@@ -640,27 +640,23 @@ class ERCOTAPIMixin:
             dc_ties = ercot.get_dc_tie_flows(start="2024-01-15")
             ```
         """
+
         start_ts, end_ts = parse_date_range(start, end)
+        date_column = "TAGCLAST_TIME"
+        df = self.get_state_estimator_dc_ties_flows_report(start_ts, end_ts)
+        df.sort_values(date_column, ascending=True, inplace=True)
+        return filter_by_date(df, start_ts, end_ts, date_column=date_column)
 
-        # DC tie data via archive API
-        df = self._get_archive().fetch_historical(
-            endpoint="/np6-626-cd/dc_tie",
-            start=start_ts,
-            end=end_ts,
-        )
-
-        df = filter_by_date(df, start_ts, end_ts)
-        return standardize_columns(df)
-
-    def get_total_generation(
+    def get_se_load(
         self,
         start: str | pd.Timestamp = "today",
         end: str | pd.Timestamp | None = None,
     ) -> pd.DataFrame:
         """Get total ERCOT system generation.
 
-        Provides the total MW generation across the ERCOT system from
-        the state estimator.
+        The aggregate generation of real and reactive power
+        (MW and MVAR) for the entire ERCOT system.
+
 
         EMIL ID: NP6-625-CD
 
@@ -682,26 +678,20 @@ class ERCOTAPIMixin:
             ```
         """
         start_ts, end_ts = parse_date_range(start, end)
-
-        # Total generation via archive API
-        df = self._get_archive().fetch_historical(
-            endpoint="/np6-625-cd/se_totalgen",
-            start=start_ts,
-            end=end_ts,
-        )
-
-        df = filter_by_date(df, start_ts, end_ts)
-        return standardize_columns(df)
+        date_column = "SE_EXE_TIME"
+        df = self.get_state_estimator_load_report(start_ts, end_ts)
+        df.sort_values(date_column, ascending=True, inplace=True)
+        return filter_by_date(df, start_ts, end_ts, date_column=date_column)
 
     def get_system_wide_actuals(
         self,
         start: str | pd.Timestamp = "today",
         end: str | pd.Timestamp | None = None,
     ) -> pd.DataFrame:
-        """Get system-wide actual values per SCED interval.
+        """Aggregated ERCOT system actual demand by 15-minute interval,
+        for the most recent hour.
 
-        Provides actual system-wide metrics from each SCED execution
-        including load, generation, and reserves.
+        Note: ERCOT only retains 7-days worth of data on this endpoint
 
         EMIL ID: NP6-235-CD
 
@@ -714,7 +704,7 @@ class ERCOTAPIMixin:
 
         Note:
             This data is only available through the archive API for historical
-            dates. Real-time access may require pyercot updates.
+            dates.
 
         Example:
             ```python
@@ -723,16 +713,10 @@ class ERCOTAPIMixin:
             ```
         """
         start_ts, end_ts = parse_date_range(start, end)
-
-        # System-wide actuals via archive API
-        df = self._get_archive().fetch_historical(
-            endpoint="/np6-235-cd/sys_wide_actuals",
-            start=start_ts,
-            end=end_ts,
-        )
-
-        df = filter_by_date(df, start_ts, end_ts)
-        return standardize_columns(df)
+        df = self.get_system_wide_actuals_docs(start_ts, end_ts)
+        df = filter_by_date(df, start_ts, end_ts, date_column="DeliveryDate")
+        df.sort_values("TimeEnding", ascending=True, inplace=True)
+        return df
 
     # ============================================================================
     # 60-Day Disclosure Reports
@@ -746,20 +730,6 @@ class ERCOTAPIMixin:
 
         ERCOT publishes these reports with a 60-day delay. This method
         automatically adjusts the date to fetch the correct historical data.
-
-        Returns a dictionary containing multiple DataFrames:
-        - dam_gen_resource: Generation resource data
-        - dam_gen_resource_as_offers: Generation resource AS offers
-        - dam_load_resource: Load resource data
-        - dam_load_resource_as_offers: Load resource AS offers
-        - dam_energy_only_offers: Energy-only offers
-        - dam_energy_only_offer_awards: Energy-only offer awards
-        - dam_energy_bids: Energy bids
-        - dam_energy_bid_awards: Energy bid awards
-        - dam_ptp_obligation_bids: PTP obligation bids
-        - dam_ptp_obligation_bid_awards: PTP obligation bid awards
-        - dam_ptp_obligation_options: PTP obligation options
-        - dam_ptp_obligation_option_awards: PTP obligation option awards
 
         Args:
             date: Date to fetch disclosure for (data is 60 days delayed)
@@ -788,28 +758,18 @@ class ERCOTAPIMixin:
         archive = self._get_archive()
 
         # Fetch from archive
-        df = archive.fetch_historical(
+        archives: dict[str, pd.DataFrame] = archive.fetch_historical(
             endpoint="/np3-966-er/60_dam_gen_res_data",
             start=report_date,
             end=end_date,
         )
 
-        # For now, return a single DataFrame
-        # Full implementation would parse the zip and extract multiple files
-        return {
-            "dam_gen_resource": df,
-            "dam_gen_resource_as_offers": self.get_dam_gen_res_as_offers(),
-            "dam_load_resource": self.get_dam_load_res_data(),
-            "dam_load_resource_as_offers": self.get_dam_load_res_as_offers(),
-            "dam_energy_only_offers": self.get_dam_energy_only_offers(),
-            "dam_energy_only_offer_awards": self.get_dam_energy_only_offer_awards(),
-            "dam_energy_bids": self.get_dam_energy_bids(),
-            "dam_energy_bid_awards": self.get_dam_energy_bid_awards(),
-            "dam_ptp_obligation_bids": self.get_dam_ptp_obl_bids(),
-            "dam_ptp_obligation_bid_awards": self.get_dam_ptp_obl_bid_awards(),
-            "dam_ptp_obligation_options": self.get_dam_ptp_obl_opt(),
-            "dam_ptp_obligation_option_awards": self.get_dam_ptp_obl_opt_awards(),
-        }
+        results = {}
+        for filename, df in archives.items():
+            new_key = f"60d_dam_{filename.lower().split('_')[2].split('-')[0]}"
+            results[new_key] = df
+
+        return results
 
     def get_60_day_sced_disclosure(
         self,
@@ -820,10 +780,20 @@ class ERCOTAPIMixin:
         ERCOT publishes these reports with a 60-day delay. This method
         automatically adjusts the date to fetch the correct historical data.
 
-        Returns a dictionary containing:
-        - sced_gen_resource: SCED generation resource data
-        - sced_load_resource: SCED load resource data
-        - sced_smne: SCED SMNE generation resource data
+        This report will contain all 60 day disclosure data related to SCED.
+
+        The following individual files are included in the report:
+        - 60d_HDL_LDL_ManOverride
+        - 60d_Load_Resource_Data_in_SCED
+        - 60d_SCED_DSR_Load_Data
+        - 60d_SCED_EOC_Updates_in_OpHour
+        - 60d_SCED_Gen_Resource_Data
+        - 60d_SCED_QSE_Self_Arranged
+        - 60d_SCED_SMNE_GEN_RES.
+
+
+        Returns a dictionary containing lower case keys of the report names
+        i.e.) 60d_hdl_ldl_man_override
 
         Args:
             date: Date to fetch disclosure for (data is 60 days delayed)
@@ -837,28 +807,7 @@ class ERCOTAPIMixin:
 
             # Get SCED disclosure
             reports = ercot.get_60_day_sced_disclosure("2024-01-15")
-
-            # Access specific reports
-            gen_data = reports["sced_gen_resource"]
             ```
         """
         date_ts = parse_date(date)
-
-        # Data is published 60 days after the operating day
-        report_date = date_ts + pd.Timedelta(days=60)
-        end_date = report_date + pd.Timedelta(days=1)
-
-        archive = self._get_archive()
-
-        # Fetch SMNE data from archive
-        smne_df = archive.fetch_historical(
-            endpoint="/np3-965-er/60_sced_smne_gen_res",
-            start=report_date,
-            end=end_date,
-        )
-
-        return {
-            "sced_gen_resource": self.get_sced_gen_res_data(),
-            "sced_load_resource": self.get_load_res_data_in_sced(),
-            "sced_smne": smne_df,
-        }
+        return self.get_60d_sced_disclosure(date_ts)

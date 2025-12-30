@@ -177,7 +177,7 @@ class ERCOT(
     ERCOTDocumentsMixin,
     ERCOTDashboardMixin,
 ):
-    """ERCOT (Electric Reliability Council of Texas) SDK client.
+    """ERCOT (Electricity Reliability Council of Texas) SDK client.
 
     Provides a clean, intuitive interface for accessing ERCOT grid data without
     needing to know about endpoint paths, API categories, or client lifecycle management.

@@ -126,7 +126,7 @@ def filter_by_date(
     actual_col = None
     for col in [
         date_column,
-        "DeliveryDate",  # Historical archive format
+        "DeliveryDate",
         "Delivery Date",
         "Oper Day",
         "OperDay",
